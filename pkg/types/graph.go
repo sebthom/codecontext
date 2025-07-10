@@ -51,13 +51,17 @@ type Symbol struct {
 
 // GraphNode represents a node in the code graph
 type GraphNode struct {
-	Id              NodeId    `json:"id"`
-	Symbol          Symbol    `json:"symbol"`
-	Importance      float64   `json:"importance"`
-	Connections     int       `json:"connections"`
-	ChangeFrequency int       `json:"change_frequency"`
-	LastModified    time.Time `json:"last_modified"`
-	Tags            []string  `json:"tags,omitempty"`
+	Id              NodeId                 `json:"id"`
+	Type            string                 `json:"type"`
+	Label           string                 `json:"label"`
+	FilePath        string                 `json:"file_path,omitempty"`
+	Symbol          *Symbol                `json:"symbol,omitempty"`
+	Importance      float64                `json:"importance"`
+	Connections     int                    `json:"connections"`
+	ChangeFrequency int                    `json:"change_frequency"`
+	LastModified    time.Time              `json:"last_modified"`
+	Tags            []string               `json:"tags,omitempty"`
+	Metadata        map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // Edge represents a connection between graph nodes
@@ -85,20 +89,25 @@ type GraphMetadata struct {
 	ProjectPath     string            `json:"project_path"`
 	TotalFiles      int               `json:"total_files"`
 	TotalSymbols    int               `json:"total_symbols"`
-	Languages       []string          `json:"languages"`
+	Languages       map[string]int    `json:"languages"`
+	Generated       time.Time         `json:"generated"`
 	GeneratedAt     time.Time         `json:"generated_at"`
 	ProcessingTime  time.Duration     `json:"processing_time"`
+	AnalysisTime    time.Duration     `json:"analysis_time"`
+	Version         string            `json:"version"`
 	TokenCount      int               `json:"token_count"`
 	Configuration   map[string]interface{} `json:"configuration,omitempty"`
 }
 
 // CodeGraph represents the complete code graph
 type CodeGraph struct {
-	Nodes        map[NodeId]*GraphNode `json:"nodes"`
-	Edges        map[NodeId][]*Edge    `json:"edges"`
-	Metadata     GraphMetadata         `json:"metadata"`
-	Version      GraphVersion          `json:"version"`
-	PatchHistory []GraphPatch          `json:"patch_history,omitempty"`
+	Nodes        map[NodeId]*GraphNode   `json:"nodes"`
+	Edges        map[EdgeId]*GraphEdge   `json:"edges"`
+	Files        map[string]*FileNode    `json:"files"`
+	Symbols      map[SymbolId]*Symbol    `json:"symbols"`
+	Metadata     *GraphMetadata          `json:"metadata"`
+	Version      GraphVersion            `json:"version"`
+	PatchHistory []GraphPatch            `json:"patch_history,omitempty"`
 }
 
 // GraphPatch represents a change to the graph
@@ -146,4 +155,32 @@ type FileClassification struct {
 	IsTest      bool     `json:"is_test"`
 	Framework   string   `json:"framework,omitempty"`
 	Confidence  float64  `json:"confidence"`
+}
+
+// EdgeId represents a unique identifier for an edge
+type EdgeId string
+
+// GraphEdge represents an edge in the code graph with metadata
+type GraphEdge struct {
+	Id       EdgeId                 `json:"id"`
+	From     NodeId                 `json:"from"`
+	To       NodeId                 `json:"to"`
+	Type     string                 `json:"type"`
+	Weight   float64                `json:"weight"`
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
+}
+
+// FileNode represents a file in the codebase
+type FileNode struct {
+	Path         string      `json:"path"`
+	Language     string      `json:"language"`
+	Size         int         `json:"size"`
+	Lines        int         `json:"lines"`
+	SymbolCount  int         `json:"symbol_count"`
+	ImportCount  int         `json:"import_count"`
+	IsTest       bool        `json:"is_test"`
+	IsGenerated  bool        `json:"is_generated"`
+	LastModified time.Time   `json:"last_modified"`
+	Symbols      []SymbolId  `json:"symbols"`
+	Imports      []*Import   `json:"imports"`
 }
