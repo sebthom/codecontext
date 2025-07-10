@@ -1,0 +1,954 @@
+# High-Level Design: CodeContext
+
+**Version:** 2.0  
+**Date:** January 2025  
+**Author:** Architecture Team  
+**Status:** Updated Draft
+
+## 1. Executive Summary
+
+This document presents the high-level design for CodeContext, an automated repository mapping system for AI-powered development tools. The system processes source code repositories to generate and maintain intelligent context maps, optimizing AI assistant performance while managing token constraints.
+
+**Key Innovations in v2.0:**
+- **Virtual Graph Architecture**: Implements a Virtual DOM-inspired approach for incremental updates, achieving O(changes) complexity instead of O(repository_size)
+- **Interactive Compaction**: Introduces `/compact` command for dynamic context optimization based on task requirements
+- **Differential Processing**: AST-level diffing for minimal regeneration overhead
+
+## 2. System Architecture Overview
+
+### 2.1 Architecture Principles
+- **Modular Design**: Loosely coupled components with clear interfaces
+- **Language Agnostic**: Pluggable parser architecture for multi-language support
+- **Performance First**: Streaming processing, incremental updates via virtual graph
+- **Developer Friendly**: CLI-first with API accessibility and interactive commands
+- **Privacy Preserving**: Local-first processing, no mandatory cloud dependency
+- **Incremental by Design**: Virtual DOM philosophy for efficient updates
+
+### 2.2 High-Level Architecture
+
+```mermaid
+graph TB
+    subgraph "Client Layer"
+        CLI[CLI Tool]
+        IDE[IDE Extensions]
+        API[REST/GraphQL API]
+        IC[Interactive Commands]
+    end
+    
+    subgraph "Core Engine"
+        ORC[Orchestrator]
+        PM[Parser Manager]
+        VGE[Virtual Graph Engine]
+        AG[Analyzer Graph]
+        OPT[Optimizer]
+        CC[Compact Controller]
+        GEN[Generator]
+    end
+    
+    subgraph "Virtual DOM Layer"
+        SD[Shadow Graph]
+        DF[Diff Engine]
+        RC[Reconciler]
+        PT[Patch Manager]
+    end
+    
+    subgraph "Parser Layer"
+        TS[Tree-sitter Core]
+        LP[Language Parsers]
+        CP[Custom Parsers]
+        AD[AST Differ]
+    end
+    
+    subgraph "Intelligence Layer"
+        GE[Graph Engine]
+        SE[Semantic Engine]
+        AI[AI Summarizer]
+    end
+    
+    subgraph "Storage Layer"
+        FS[File System]
+        CACHE[Cache Layer]
+        VEC[Vector Store]
+        DIFF[Diff Store]
+    end
+    
+    subgraph "Integration Layer"
+        GIT[Git Integration]
+        CI[CI/CD Plugins]
+        AIP[AI Platform Adapters]
+    end
+    
+    CLI --> ORC
+    IDE --> API
+    API --> ORC
+    IC --> CC
+    
+    ORC --> PM
+    ORC --> GEN
+    PM --> TS
+    TS --> LP
+    
+    PM --> VGE
+    VGE --> SD
+    VGE --> DF
+    DF --> AD
+    DF --> RC
+    RC --> PT
+    
+    VGE --> AG
+    AG --> GE
+    AG --> SE
+    SE --> AI
+    
+    AG --> OPT
+    CC --> OPT
+    OPT --> GEN
+    
+    GEN --> FS
+    GE --> CACHE
+    SE --> VEC
+    DF --> DIFF
+    
+    ORC --> GIT
+    CI --> CLI
+    GEN --> AIP
+```
+
+## 3. Component Design
+
+### 3.1 Core Engine Components
+
+#### 3.1.1 Orchestrator
+**Purpose**: Central coordination and workflow management
+
+**Responsibilities**:
+- Request routing and validation
+- Workflow orchestration with timeout/cancellation support
+- Progress tracking and reporting
+- Error handling and recovery
+- Checkpoint-based resumable operations
+- Virtual graph coordination
+
+**Key Interfaces**:
+```typescript
+interface Orchestrator {
+  generateMap(config: ProjectConfig): Promise<MapResult>
+  generateMapWithTimeout(config: ProjectConfig, timeout: Duration): Promise<MapResult>
+  updateMap(changes: FileChanges): Promise<MapResult>
+  updateMapIncremental(changes: FileChanges): Promise<PatchResult>
+  validateConfig(config: ProjectConfig): ValidationResult
+  cancelOperation(operationId: string): void
+  resumeFromCheckpoint(checkpointId: string): Promise<MapResult>
+  executeCompactCommand(command: CompactCommand): Promise<MapResult>
+}
+
+interface OrchestrationContext {
+  ctx: Context
+  cancel: CancelFunc
+  checkpoint: Checkpoint
+  progressChan: Channel<Progress>
+  virtualGraph: VirtualGraphEngine
+}
+
+interface PatchResult {
+  patches: GraphPatch[]
+  affectedNodes: NodeId[]
+  tokenDelta: number
+  applied: boolean
+}
+```
+
+#### 3.1.2 Virtual Graph Engine (NEW)
+**Purpose**: Implement Virtual DOM philosophy for efficient incremental updates
+
+**Responsibilities**:
+- Maintain shadow and actual graph states
+- Compute minimal diffs between AST versions
+- Batch and reconcile changes
+- Apply patches efficiently
+- Track change propagation
+
+**Key Interfaces**:
+```typescript
+interface VirtualGraphEngine {
+  // State management
+  shadow: CodeGraph         // Virtual representation
+  actual: CodeGraph        // Committed state
+  pendingChanges: ChangeSet[]
+  
+  // Core operations
+  diff(oldAST: AST, newAST: AST): ASTDiff
+  batchChange(change: Change): void
+  reconcile(): ReconciliationPlan
+  commit(plan: ReconciliationPlan): CodeGraph
+  rollback(checkpoint: GraphCheckpoint): void
+  
+  // Optimization
+  shouldBatch(change: Change): boolean
+  optimizePlan(plan: ReconciliationPlan): OptimizedPlan
+  
+  // Metrics
+  getChangeMetrics(): ChangeMetrics
+}
+
+interface ASTDiff {
+  fileId: string
+  additions: ASTNode[]
+  deletions: ASTNode[]
+  modifications: ASTModification[]
+  structuralChanges: boolean
+  impactRadius: ImpactAnalysis
+}
+
+interface ReconciliationPlan {
+  patches: GraphPatch[]
+  updateOrder: NodeId[]
+  invalidations: CacheInvalidation[]
+  estimatedDuration: Duration
+  tokenImpact: TokenDelta
+}
+
+interface GraphPatch {
+  type: "add" | "remove" | "modify" | "reorder"
+  targetNode: NodeId
+  changes: PropertyChange[]
+  dependencies: NodeId[]
+}
+```
+
+#### 3.1.3 AST Differ (NEW)
+**Purpose**: Compute structural differences between AST versions
+
+**Responsibilities**:
+- Tree diffing algorithms
+- Symbol-level change detection
+- Semantic diff computation
+- Change impact analysis
+
+**Key Interfaces**:
+```typescript
+interface ASTDiffer {
+  // Diff algorithms
+  structuralDiff(oldAST: AST, newAST: AST): StructuralDiff
+  semanticDiff(oldAST: AST, newAST: AST): SemanticDiff
+  
+  // Symbol tracking
+  trackSymbolChanges(diff: StructuralDiff): SymbolChangeSet
+  computeImpact(changes: SymbolChangeSet): ImpactGraph
+  
+  // Optimization
+  useTreeHashing: boolean
+  useMemoization: boolean
+  maxDiffDepth: number
+}
+
+interface StructuralDiff {
+  nodeChanges: NodeChange[]
+  treeHash: string
+  complexity: number
+}
+
+interface SymbolChangeSet {
+  added: Map<SymbolId, Symbol>
+  removed: Map<SymbolId, Symbol>
+  modified: Map<SymbolId, SymbolModification>
+  renamed: Map<SymbolId, RenameInfo>
+}
+```
+
+#### 3.1.4 Compact Controller (NEW)
+**Purpose**: Handle interactive context compaction commands
+
+**Responsibilities**:
+- Parse and execute compact commands
+- Apply task-specific optimization strategies
+- Provide real-time feedback
+- Maintain compaction history
+
+**Key Interfaces**:
+```typescript
+interface CompactController {
+  // Command execution
+  executeCommand(command: string, context: CompactContext): CompactResult
+  
+  // Predefined strategies
+  compactMinimal(): CompactResult
+  compactBalanced(): CompactResult
+  compactAggressive(): CompactResult
+  
+  // Task-specific compaction
+  compactForTask(task: TaskType): CompactResult
+  compactToTokenLimit(maxTokens: number): CompactResult
+  
+  // Interactive features
+  previewCompaction(strategy: CompactStrategy): CompactPreview
+  undoCompaction(): void
+  getCompactionHistory(): CompactHistory[]
+}
+
+interface CompactCommand {
+  type: "level" | "task" | "tokens" | "custom"
+  parameters: CompactParameters
+  preview: boolean
+}
+
+interface CompactResult {
+  originalTokens: number
+  compactedTokens: number
+  reductionPercent: number
+  preservedSymbols: Symbol[]
+  removedSymbols: Symbol[]
+  qualityScore: number
+  reversible: boolean
+}
+
+interface TaskType {
+  name: "debugging" | "refactoring" | "documentation" | "review" | "testing"
+  priorityPatterns: string[]
+  preserveList: SymbolPattern[]
+  aggressiveRemoval: SymbolPattern[]
+}
+```
+
+#### 3.1.5 Parser Manager (Enhanced)
+**Purpose**: Abstract syntax tree generation and management with diff support
+
+**Responsibilities**:
+- Language detection and file classification
+- Parser selection and initialization
+- AST generation and caching
+- Symbol extraction
+- Import alias resolution
+- AST versioning for diff support
+
+**Key Interfaces**:
+```typescript
+interface ParserManager {
+  parseFile(path: string, language: Language): Promise<AST>
+  parseFileVersioned(path: string, content: string, version: string): Promise<VersionedAST>
+  extractSymbols(ast: AST): Symbol[]
+  extractImports(ast: AST): Import[]
+  resolveImportAlias(importPath: string, fromFile: string): string
+  getSupportedLanguages(): Language[]
+  classifyFile(path: string): FileClassification
+  getASTCache(): ASTCache
+}
+
+interface VersionedAST {
+  ast: AST
+  version: string
+  hash: string
+  timestamp: Date
+}
+
+interface ASTCache {
+  get(fileId: string, version?: string): VersionedAST | null
+  set(fileId: string, ast: VersionedAST): void
+  getDiffCache(fileId: string): ASTDiff[]
+  invalidate(fileId: string): void
+}
+```
+
+#### 3.1.6 Analyzer Graph (Enhanced)
+**Purpose**: Build and analyze code relationships with incremental update support
+
+**Responsibilities**:
+- Dependency graph construction
+- Call graph analysis
+- Symbol importance ranking
+- Pattern detection
+- Incremental graph updates via patches
+
+**Key Data Structures**:
+```typescript
+interface CodeGraph {
+  nodes: Map<SymbolId, GraphNode>
+  edges: Map<SymbolId, Edge[]>
+  metadata: GraphMetadata
+  version: GraphVersion
+  patchHistory: GraphPatch[]
+}
+
+interface GraphNode {
+  id: SymbolId
+  type: SymbolType
+  location: FileLocation
+  importance: number
+  connections: number
+  lastModified: Date
+  changeFrequency: number
+}
+
+interface GraphVersion {
+  major: number
+  minor: number
+  patch: number
+  timestamp: Date
+  changeCount: number
+}
+```
+
+#### 3.1.7 Optimizer (Enhanced)
+**Purpose**: Token budget management, content prioritization, and interactive optimization
+
+**Responsibilities**:
+- Token counting and estimation
+- Platform-specific token limit awareness
+- Content prioritization algorithms
+- Redundancy elimination
+- Compression strategies
+- Token usage reporting
+- Interactive compaction support
+
+**Optimization Strategies**:
+```typescript
+interface OptimizationStrategy {
+  name: string
+  tokenLimit: number
+  prioritize(graph: CodeGraph): PrioritizedContent
+  compress(content: Content): CompressedContent
+  applyCompactCommand(command: CompactCommand, content: Content): Content
+}
+
+interface InteractiveOptimizer {
+  // Real-time optimization
+  optimizeInteractive(content: Content, constraint: TokenConstraint): OptimizedContent
+  
+  // Feedback loop
+  getOptimizationSuggestions(content: Content): Suggestion[]
+  applyUserFeedback(feedback: UserFeedback): void
+  
+  // Quality metrics
+  calculateQualityScore(original: Content, optimized: Content): QualityScore
+}
+
+interface CompactStrategy {
+  minimal: {
+    keepCriticalOnly: boolean
+    maxDepth: number
+    tokenTarget: 0.3  // 30% of original
+  }
+  balanced: {
+    keepImportantSymbols: boolean
+    includeDocumentation: boolean
+    tokenTarget: 0.6  // 60% of original
+  }
+  aggressive: {
+    essentialOnly: boolean
+    removeComments: boolean
+    tokenTarget: 0.15  // 15% of original
+  }
+}
+```
+
+#### 3.1.8 Generator (Enhanced)
+**Purpose**: Output generation with incremental update support
+
+**Responsibilities**:
+- Template processing
+- Format conversion
+- Import resolution
+- Incremental updates via patches
+- Interactive table of contents generation
+- Token usage visualization
+- Diff visualization
+
+**Output Formats**:
+- Markdown (CLAUDE.md) with interactive TOC
+- JSON (structured data)
+- YAML (configuration)
+- Diff format (for incremental updates)
+- Custom formats via plugins
+
+**Incremental Generation**:
+```typescript
+interface IncrementalGenerator {
+  // Patch-based updates
+  applyPatch(current: Document, patch: DocumentPatch): Document
+  generateDiff(old: Document, new: Document): DocumentDiff
+  
+  // Efficient regeneration
+  regenerateSection(doc: Document, sectionId: string): Section
+  updateTOC(doc: Document, changes: TOCChange[]): TableOfContents
+  
+  // Visualization
+  visualizeDiff(diff: DocumentDiff): string
+  generateChangeReport(patches: GraphPatch[]): ChangeReport
+}
+
+interface DocumentPatch {
+  type: "insert" | "delete" | "replace"
+  location: DocumentLocation
+  content: string
+  metadata: PatchMetadata
+}
+```
+
+### 3.2 Parser Layer (Enhanced)
+
+#### 3.2.1 Tree-sitter Integration with Diff Support
+**Configuration**:
+```javascript
+const parserConfig = {
+  typescript: {
+    parser: require('tree-sitter-typescript').typescript,
+    queries: loadQueries('typescript/tags.scm'),
+    fileExtensions: ['.ts', '.tsx', '.mts', '.cts'],
+    differ: new TypeScriptDiffer(),
+    hashStrategy: 'semantic'  // or 'structural'
+  },
+  // ... other languages
+}
+```
+
+#### 3.2.2 Diff Store (NEW)
+**Purpose**: Efficient storage and retrieval of AST diffs
+
+**Schema**:
+```sql
+CREATE TABLE ast_diffs (
+    id TEXT PRIMARY KEY,
+    file_path TEXT NOT NULL,
+    from_version TEXT NOT NULL,
+    to_version TEXT NOT NULL,
+    diff_data BLOB NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    impact_score REAL,
+    INDEX idx_file_versions ON ast_diffs(file_path, from_version, to_version)
+);
+
+CREATE TABLE diff_cache (
+    cache_key TEXT PRIMARY KEY,
+    diff_result BLOB NOT NULL,
+    computation_time_ms INTEGER,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMP
+);
+```
+
+### 3.3 Intelligence Layer (Enhanced)
+
+#### 3.3.1 Graph Engine with Incremental Analysis
+**Purpose**: Advanced relationship analysis with incremental update support
+
+**Features**:
+- PageRank-based importance scoring with incremental updates
+- Community detection for module boundaries
+- Shortest path analysis for dependencies
+- Change impact analysis
+- Incremental graph algorithms
+
+**Incremental Graph Algorithms**:
+```python
+class IncrementalGraphAnalyzer:
+    def update_importance_incremental(self, graph: CodeGraph, changes: GraphPatch[]) -> Dict[NodeId, float]:
+        """
+        Update PageRank scores incrementally for affected nodes only
+        """
+        affected_nodes = self._get_affected_nodes(changes)
+        return self._localized_pagerank(graph, affected_nodes)
+    
+    def update_communities_incremental(self, graph: CodeGraph, changes: GraphPatch[]) -> List[Community]:
+        """
+        Update community detection incrementally
+        """
+        affected_communities = self._get_affected_communities(changes)
+        return self._recompute_communities(graph, affected_communities)
+    
+    def compute_change_propagation(self, graph: CodeGraph, changed_nodes: List[NodeId]) -> PropagationTree:
+        """
+        Compute how changes propagate through the graph
+        """
+        propagation = PropagationTree()
+        for node in changed_nodes:
+            propagation.add_path(self._trace_dependencies(graph, node))
+        return propagation
+```
+
+### 3.4 API Design (Enhanced)
+
+#### 3.4.1 REST API with Compact Commands
+
+**New Endpoints**:
+```yaml
+paths:
+  /api/v1/projects/{projectId}/compact:
+    post:
+      summary: Execute compact command
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompactRequest'
+            examples:
+              minimal:
+                value:
+                  level: "minimal"
+                  preview: true
+              taskBased:
+                value:
+                  task: "debugging"
+                  focusFiles: ["src/auth.ts"]
+              tokenLimit:
+                value:
+                  maxTokens: 50000
+                  preserveCore: true
+      responses:
+        '200':
+          description: Compaction result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompactResult'
+                
+  /api/v1/projects/{projectId}/diff:
+    get:
+      summary: Get incremental changes
+      parameters:
+        - name: fromVersion
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: toVersion
+          in: query
+          schema:
+            type: string
+            default: "latest"
+      responses:
+        '200':
+          description: Diff between versions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VersionDiff'
+```
+
+#### 3.4.2 GraphQL API with Virtual Graph Support
+
+**Enhanced Schema**:
+```graphql
+type Query {
+  project(id: ID!): Project
+  searchSymbols(query: String!, limit: Int): [Symbol!]!
+  getRelationships(symbolId: ID!): Relationships
+  getDiff(projectId: ID!, fromVersion: String!, toVersion: String): VersionDiff
+  previewCompaction(projectId: ID!, strategy: CompactStrategy!): CompactPreview
+}
+
+type Mutation {
+  generateMap(config: ProjectConfigInput!): MapResult!
+  updateMap(projectId: ID!, changes: [FileChangeInput!]!): MapResult!
+  updateMapIncremental(projectId: ID!, changes: [FileChangeInput!]!): PatchResult!
+  optimizeContext(projectId: ID!, budget: TokenBudget!): OptimizationResult!
+  executeCompactCommand(projectId: ID!, command: CompactCommandInput!): CompactResult!
+}
+
+type Subscription {
+  mapUpdates(projectId: ID!): MapUpdate!
+  incrementalChanges(projectId: ID!): GraphPatch!
+  compactionProgress(projectId: ID!): CompactProgress!
+}
+
+type PatchResult {
+  patches: [GraphPatch!]!
+  affectedNodes: [NodeId!]!
+  tokenDelta: Int!
+  processingTime: Int!
+}
+
+type CompactResult {
+  originalTokens: Int!
+  compactedTokens: Int!
+  reductionPercent: Float!
+  qualityScore: Float!
+  reversible: Boolean!
+}
+```
+
+## 4. Data Flow Design (Enhanced)
+
+### 4.1 Incremental Update Flow with Virtual Graph
+
+```mermaid
+sequenceDiagram
+    participant FS as File System
+    participant VGE as Virtual Graph Engine
+    participant AD as AST Differ
+    participant RC as Reconciler
+    participant GEN as Generator
+    participant OUT as Output
+    
+    FS->>VGE: File change detected
+    VGE->>AD: Request AST diff
+    
+    AD->>AD: Parse new version
+    AD->>AD: Load cached old version
+    AD->>AD: Compute structural diff
+    AD-->>VGE: Return ASTDiff
+    
+    VGE->>VGE: Update shadow graph
+    VGE->>VGE: Batch with pending changes
+    
+    opt Batch threshold reached
+        VGE->>RC: Request reconciliation
+        RC->>RC: Compute minimal patches
+        RC->>RC: Order updates
+        RC-->>VGE: Return ReconciliationPlan
+        
+        VGE->>VGE: Apply patches to actual graph
+        VGE->>GEN: Send patches
+        
+        GEN->>GEN: Apply document patches
+        GEN->>OUT: Write incremental update
+    end
+```
+
+### 4.2 Interactive Compact Command Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant CLI
+    participant CC as Compact Controller
+    participant OPT as Optimizer
+    participant VGE as Virtual Graph Engine
+    participant GEN as Generator
+    
+    User->>CLI: /compact minimal
+    CLI->>CC: Parse command
+    
+    CC->>OPT: Request compaction strategy
+    OPT->>VGE: Get current graph state
+    VGE-->>OPT: Return graph
+    
+    OPT->>OPT: Apply minimal strategy
+    OPT->>OPT: Calculate token reduction
+    OPT-->>CC: Return preview
+    
+    CC->>User: Show preview (30% size, quality: 85%)
+    User->>CC: Confirm
+    
+    CC->>VGE: Create compacted graph
+    VGE->>GEN: Generate compacted output
+    GEN->>User: Compacted map ready
+```
+
+## 5. Performance Optimization (Enhanced)
+
+### 5.1 Virtual Graph Performance Benefits
+
+**Complexity Improvements**:
+- Initial scan: O(n) → Unchanged
+- Incremental update: O(repository_size) → O(changes)
+- Graph rebuild: O(n log n) → O(affected_nodes)
+- Token regeneration: O(n) → O(modified_sections)
+
+**Benchmark Scenarios**:
+```typescript
+interface IncrementalBenchmark {
+  name: string
+  fileChanges: number
+  totalFiles: number
+  expectedTime: Duration
+  actualTime?: Duration
+}
+
+// Expected performance
+const benchmarks: IncrementalBenchmark[] = [
+  { name: "Single file change", fileChanges: 1, totalFiles: 1000, expectedTime: "50ms" },
+  { name: "Module refactor", fileChanges: 10, totalFiles: 1000, expectedTime: "200ms" },
+  { name: "Large PR", fileChanges: 100, totalFiles: 10000, expectedTime: "2s" },
+  { name: "Monorepo update", fileChanges: 500, totalFiles: 50000, expectedTime: "10s" }
+]
+```
+
+### 5.2 Memory Optimization with Virtual Graph
+
+**Memory Usage**:
+```typescript
+interface MemoryProfile {
+  shadowGraph: SizeInMB      // ~10% of actual graph
+  actualGraph: SizeInMB      // Full graph
+  diffCache: SizeInMB        // Bounded LRU cache
+  patchHistory: SizeInMB     // Configurable retention
+}
+
+// Memory bounds
+const memoryLimits = {
+  maxShadowSize: 100,        // MB
+  maxDiffCacheSize: 50,      // MB
+  maxPatchHistory: 1000,     // patches
+  gcThreshold: 0.8           // Trigger GC at 80% usage
+}
+```
+
+### 5.3 Caching Strategy for Virtual Graph
+
+**Multi-Level Cache Hierarchy**:
+```yaml
+cache_hierarchy:
+  l1_diff_cache:
+    type: in-memory
+    size: 100MB
+    ttl: 1h
+    eviction: lru
+    
+  l2_ast_cache:
+    type: file-based
+    size: 1GB
+    ttl: 24h
+    compression: true
+    
+  l3_computed_cache:
+    type: distributed
+    backend: redis
+    sharding: consistent-hash
+    replication: 2
+```
+
+## 6. CLI Commands (Enhanced)
+
+### 6.1 New Interactive Commands
+
+```bash
+# Compact commands
+codecontext compact --level minimal
+codecontext compact --task debugging --focus src/auth
+codecontext compact --tokens 50000
+codecontext compact --preview  # Show impact before applying
+
+# Diff commands
+codecontext diff --from HEAD~1 --to HEAD
+codecontext diff --since 2h
+codecontext show-patches --last 10
+
+# Virtual graph commands
+codecontext graph --show-shadow
+codecontext graph --reconcile
+codecontext graph --rollback
+
+# Performance commands
+codecontext perf --incremental-stats
+codecontext perf --memory-profile
+codecontext perf --cache-stats
+```
+
+### 6.2 Configuration for Virtual Graph
+
+**.codecontext/config.yaml**:
+```yaml
+virtual_graph:
+  enabled: true
+  batch_threshold: 5        # Batch 5 changes before reconciling
+  batch_timeout: 500ms      # Or reconcile after 500ms
+  max_shadow_memory: 100MB
+  diff_algorithm: myers     # or patience, histogram
+  
+incremental_update:
+  enabled: true
+  min_change_size: 10       # Skip virtual graph for tiny changes
+  max_patch_history: 1000
+  compact_patches: true     # Merge adjacent patches
+  
+compact_profiles:
+  minimal:
+    token_target: 0.3
+    preserve: ["core", "api", "critical"]
+    remove: ["tests", "examples", "generated"]
+    
+  debugging:
+    preserve: ["error_handling", "logging", "state"]
+    expand: ["call_stack", "dependencies"]
+    
+  documentation:
+    preserve: ["comments", "types", "interfaces"]
+    remove: ["implementation_details", "private_methods"]
+```
+
+## 7. Monitoring and Observability (Enhanced)
+
+### 7.1 Virtual Graph Metrics
+
+**New Metrics**:
+```typescript
+// Virtual graph performance
+codecontext.vgraph.diff.duration
+codecontext.vgraph.reconcile.duration
+codecontext.vgraph.patch.count
+codecontext.vgraph.shadow.size
+codecontext.vgraph.batch.size
+
+// Compaction metrics
+codecontext.compact.reduction.percent
+codecontext.compact.quality.score
+codecontext.compact.execution.time
+codecontext.compact.strategy.usage
+
+// Incremental update metrics
+codecontext.incremental.speedup.factor
+codecontext.incremental.cache.hits
+codecontext.incremental.patch.size
+```
+
+### 7.2 Health Checks for Virtual Graph
+
+**Enhanced Health Endpoint**:
+```json
+{
+  "status": "healthy",
+  "components": {
+    "virtual_graph": {
+      "status": "ok",
+      "shadow_size_mb": 45.2,
+      "pending_changes": 3,
+      "last_reconciliation": "2025-01-15T10:30:00Z",
+      "diff_cache_hit_rate": 0.92
+    },
+    "compact_controller": {
+      "status": "ok",
+      "active_strategies": ["minimal", "debugging"],
+      "avg_reduction_percent": 65.3,
+      "quality_score": 0.89
+    }
+  }
+}
+```
+
+## 8. Error Handling and Recovery (Enhanced)
+
+### 8.1 Virtual Graph Error Recovery
+
+```typescript
+interface VirtualGraphRecovery {
+  // Corruption detection
+  validateShadowGraph(): ValidationResult
+  detectInconsistencies(): Inconsistency[]
+  
+  // Recovery strategies
+  rebuildFromActual(): void
+  replayPatchHistory(from: Timestamp): void
+  resetToCheckpoint(checkpoint: GraphCheckpoint): void
+  
+  // Partial recovery
+  quarantineCorruptedNodes(nodes: NodeId[]): void
+  rebuildSubgraph(root: NodeId): void
+}
+```
+
+### 8.2 Compact Command Rollback
+
+```typescript
+interface CompactRollback {
+  // State preservation
+  savePreCompactState(): StateSnapshot
+  
+  // Rollback operations
+  undoLastCompaction(): void
+  rollbackToSnapshot(snapshot: StateSnapshot): void
+  
+  // Safety checks
+  validateRollback(snapshot: StateSnapshot): boolean
+  estimateRollbackImpact(): Impact
+}
+```

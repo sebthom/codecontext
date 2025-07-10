@@ -1,0 +1,79 @@
+# CodeContext Configuration
+version: "2.0"
+
+# Virtual Graph Engine Settings
+virtual_graph:
+  enabled: true
+  batch_threshold: 5
+  batch_timeout: 500ms
+  max_shadow_memory: 100MB
+  diff_algorithm: myers
+
+# Incremental Update Settings
+incremental_update:
+  enabled: true
+  min_change_size: 10
+  max_patch_history: 1000
+  compact_patches: true
+
+# Language Configuration
+languages:
+  typescript:
+    extensions: [".ts", ".tsx", ".mts", ".cts"]
+    parser: "tree-sitter-typescript"
+  javascript:
+    extensions: [".js", ".jsx", ".mjs", ".cjs"]
+    parser: "tree-sitter-javascript"
+  python:
+    extensions: [".py", ".pyi"]
+    parser: "tree-sitter-python"
+  go:
+    extensions: [".go"]
+    parser: "tree-sitter-go"
+
+# Compact Profiles
+compact_profiles:
+  minimal:
+    token_target: 0.3
+    preserve: ["core", "api", "critical"]
+    remove: ["tests", "examples", "generated"]
+  balanced:
+    token_target: 0.6
+    preserve: ["core", "api", "types", "interfaces"]
+    remove: ["tests", "examples"]
+  aggressive:
+    token_target: 0.15
+    preserve: ["core", "api"]
+    remove: ["tests", "examples", "generated", "comments"]
+  debugging:
+    preserve: ["error_handling", "logging", "state"]
+    expand: ["call_stack", "dependencies"]
+  documentation:
+    preserve: ["comments", "types", "interfaces"]
+    remove: ["implementation_details", "private_methods"]
+
+# Output Settings
+output:
+  format: "markdown"
+  template: "default"
+  include_metrics: true
+  include_toc: true
+
+# File Patterns
+include_patterns:
+  - "**/*.ts"
+  - "**/*.tsx"
+  - "**/*.js"
+  - "**/*.jsx"
+  - "**/*.py"
+  - "**/*.go"
+
+exclude_patterns:
+  - "node_modules/**"
+  - "dist/**"
+  - "build/**"
+  - "*.test.*"
+  - "*.spec.*"
+  - "__pycache__/**"
+  - "vendor/**"
+  - ".git/**"
