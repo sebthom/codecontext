@@ -48,6 +48,10 @@ func (mg *MarkdownGenerator) GenerateContextMap() string {
 	sb.WriteString(mg.generateImportAnalysis())
 	sb.WriteString("\n\n")
 	
+	// Relationship Analysis
+	sb.WriteString(mg.generateRelationshipAnalysis())
+	sb.WriteString("\n\n")
+	
 	// Project Structure
 	sb.WriteString(mg.generateProjectStructure())
 	sb.WriteString("\n\n")
@@ -291,6 +295,127 @@ func (mg *MarkdownGenerator) generateImportAnalysis() string {
 	}
 	
 	return sb.String()
+}
+
+// generateRelationshipAnalysis creates the relationship analysis section
+func (mg *MarkdownGenerator) generateRelationshipAnalysis() string {
+	var sb strings.Builder
+	sb.WriteString("## 🔗 Relationship Analysis\n\n")
+	
+	// Check if relationship metrics are available
+	if mg.graph.Metadata.Configuration == nil {
+		sb.WriteString("*Relationship analysis not available.*\n")
+		return sb.String()
+	}
+	
+	metricsInterface, exists := mg.graph.Metadata.Configuration["relationship_metrics"]
+	if !exists {
+		sb.WriteString("*Relationship metrics not found.*\n")
+		return sb.String()
+	}
+	
+	metrics, ok := metricsInterface.(*RelationshipMetrics)
+	if !ok {
+		sb.WriteString("*Invalid relationship metrics format.*\n")
+		return sb.String()
+	}
+	
+	// Summary
+	sb.WriteString("### 📊 Relationship Summary\n\n")
+	sb.WriteString(fmt.Sprintf("- **Total Relationships**: %d\n", metrics.TotalRelationships))
+	sb.WriteString(fmt.Sprintf("- **File-to-File**: %d\n", metrics.FileToFile))
+	sb.WriteString(fmt.Sprintf("- **Symbol-to-Symbol**: %d\n", metrics.SymbolToSymbol))
+	sb.WriteString(fmt.Sprintf("- **Cross-File References**: %d\n", metrics.CrossFileRefs))
+	sb.WriteString("\n")
+	
+	// Relationships by type
+	if len(metrics.ByType) > 0 {
+		sb.WriteString("### 🔍 Relationship Types\n\n")
+		sb.WriteString("| Type | Count | Description |\n")
+		sb.WriteString("|------|-------|-------------|\n")
+		
+		for relType, count := range metrics.ByType {
+			description := mg.getRelationshipDescription(relType)
+			sb.WriteString(fmt.Sprintf("| %s | %d | %s |\n", relType, count, description))
+		}
+		sb.WriteString("\n")
+	}
+	
+	// Circular dependencies
+	if len(metrics.CircularDeps) > 0 {
+		sb.WriteString("### ⚠️ Circular Dependencies\n\n")
+		sb.WriteString(fmt.Sprintf("Found %d circular dependencies:\n\n", len(metrics.CircularDeps)))
+		
+		for i, dep := range metrics.CircularDeps {
+			sb.WriteString(fmt.Sprintf("**Circular Dependency %d** (%s):\n", i+1, dep.Type))
+			sb.WriteString("```\n")
+			sb.WriteString(strings.Join(dep.Path, " → "))
+			sb.WriteString("\n```\n\n")
+		}
+	} else {
+		sb.WriteString("### ✅ No Circular Dependencies\n\n")
+		sb.WriteString("No circular dependencies detected in the codebase.\n\n")
+	}
+	
+	// Hotspot files
+	if len(metrics.HotspotFiles) > 0 {
+		sb.WriteString("### 🔥 Hotspot Files\n\n")
+		sb.WriteString("Files with high dependency activity:\n\n")
+		sb.WriteString("| File | Imports | References | Score |\n")
+		sb.WriteString("|------|---------|------------|-------|\n")
+		
+		// Sort by score (descending)
+		hotspots := make([]FileHotspot, len(metrics.HotspotFiles))
+		copy(hotspots, metrics.HotspotFiles)
+		sort.Slice(hotspots, func(i, j int) bool {
+			return hotspots[i].Score > hotspots[j].Score
+		})
+		
+		for _, hotspot := range hotspots {
+			fileName := filepath.Base(hotspot.FilePath)
+			sb.WriteString(fmt.Sprintf("| `%s` | %d | %d | %.1f |\n", 
+				fileName, hotspot.ImportCount, hotspot.ReferenceCount, hotspot.Score))
+		}
+		sb.WriteString("\n")
+	}
+	
+	// Isolated files
+	if len(metrics.IsolatedFiles) > 0 {
+		sb.WriteString("### 🏝️ Isolated Files\n\n")
+		sb.WriteString("Files with no import/export relationships:\n\n")
+		
+		for _, filePath := range metrics.IsolatedFiles {
+			fileName := filepath.Base(filePath)
+			sb.WriteString(fmt.Sprintf("- `%s`\n", fileName))
+		}
+		sb.WriteString("\n")
+	}
+	
+	return sb.String()
+}
+
+// getRelationshipDescription returns a description for a relationship type
+func (mg *MarkdownGenerator) getRelationshipDescription(relType RelationshipType) string {
+	switch relType {
+	case RelationshipImport:
+		return "File imports another file"
+	case RelationshipCalls:
+		return "Function/method calls another function/method"
+	case RelationshipExtends:
+		return "Class extends another class"
+	case RelationshipImplements:
+		return "Class implements an interface"
+	case RelationshipReferences:
+		return "Symbol references another symbol"
+	case RelationshipContains:
+		return "File contains symbols"
+	case RelationshipUses:
+		return "Symbol uses another symbol"
+	case RelationshipDepends:
+		return "Component depends on another component"
+	default:
+		return "Unknown relationship type"
+	}
 }
 
 // generateProjectStructure creates the project structure section

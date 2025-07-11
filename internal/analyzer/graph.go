@@ -155,6 +155,26 @@ func (gb *GraphBuilder) processFile(filePath string) error {
 
 // buildFileRelationships analyzes imports to build file-to-file relationships
 func (gb *GraphBuilder) buildFileRelationships() {
+	// Use the enhanced relationship analyzer
+	analyzer := NewRelationshipAnalyzer(gb.graph)
+	
+	// Perform comprehensive relationship analysis
+	metrics, err := analyzer.AnalyzeAllRelationships()
+	if err != nil {
+		// Fall back to basic relationship building if analysis fails
+		gb.buildBasicFileRelationships()
+		return
+	}
+	
+	// Store relationship metrics in graph metadata
+	if gb.graph.Metadata.Configuration == nil {
+		gb.graph.Metadata.Configuration = make(map[string]interface{})
+	}
+	gb.graph.Metadata.Configuration["relationship_metrics"] = metrics
+}
+
+// buildBasicFileRelationships provides fallback basic relationship building
+func (gb *GraphBuilder) buildBasicFileRelationships() {
 	for filePath, fileNode := range gb.graph.Files {
 		for _, imp := range fileNode.Imports {
 			targetFile := gb.resolveImportPath(imp.Path, filePath)
