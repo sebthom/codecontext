@@ -111,6 +111,11 @@ func (fw *FileWatcher) Stop() error {
 	return fw.watcher.Close()
 }
 
+// StopWatching stops the file watcher (alias for Stop)
+func (fw *FileWatcher) StopWatching() error {
+	return fw.Stop()
+}
+
 // addDirectory recursively adds a directory and its subdirectories to the watcher
 func (fw *FileWatcher) addDirectory(dir string) error {
 	return filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
