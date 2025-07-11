@@ -15,7 +15,7 @@ This document presents the high-level design for CodeContext, an automated repos
 - **Rich Context Maps**: Data-driven markdown generation with real parsing metrics ✅ IMPLEMENTED
 - **Virtual Graph Architecture**: Virtual DOM-inspired approach for incremental updates (PLANNED)
 - **Interactive Compaction**: `/compact` command for dynamic context optimization (PLANNED)
-- **Differential Processing**: AST-level diffing for minimal regeneration overhead (PLANNED)
+- **Differential Processing**: Advanced AST-level diffing with semantic analysis ✅ IMPLEMENTED
 
 ## 1.1 Current Implementation Status (July 2025)
 
@@ -36,35 +36,51 @@ This document presents the high-level design for CodeContext, an automated repos
 - ✅ Import resolution and dependency mapping
 - ✅ Comprehensive test suite with integration tests
 
+**Enhanced Diff Algorithms (Phase 2.1 - NEW)**
+- ✅ Complete semantic vs structural diff engine (`internal/diff/engine.go`)
+- ✅ Language-specific AST diffing with handler framework (`internal/diff/ast.go`)
+- ✅ Advanced symbol rename detection with 6 similarity algorithms (`internal/diff/similarity.go`)
+- ✅ Pattern-based heuristics: camelCase, prefix/suffix, abbreviation, refactoring, contextual (`internal/diff/heuristics.go`)
+- ✅ Comprehensive dependency change tracking with multi-language support (`internal/diff/dependency.go`)
+- ✅ Confidence scoring, impact assessment, and evidence collection (`internal/diff/rename.go`)
+
 **CLI Framework**
 - ✅ Cobra-based command structure with `generate`, `init`, `compact`, `update`
 - ✅ Viper configuration management with hierarchical configs
 - ✅ Real data integration in generate command
 - ✅ Verbose reporting and performance metrics
 
-**Type System**
+**Enhanced Type System**
 - ✅ Complete graph types: `CodeGraph`, `GraphNode`, `GraphEdge`, `FileNode`
-- ✅ Symbol types with metadata and location tracking
+- ✅ Enhanced Symbol types with `FullyQualifiedName`, `Kind`, and `Location` fields
+- ✅ New FileInfo type for diff operations with AST, Content, ModTime support
 - ✅ Import and language classification types
 - ✅ Enhanced metadata with analysis timing
+- ✅ Diff-specific types: `Change`, `DiffResult`, `SimilarityScore`, `HeuristicScore`
 
 ### 🚧 In Progress
 
-**Enhanced Output Generation**
-- 🚧 Rich context maps with real parsed data (ACTIVE)
-- 🚧 Symbol analysis with detailed breakdowns
-- 🚧 Import relationship visualization
-- 🚧 Project structure analysis
+**Multi-Level Caching (Phase 2.2 - NEXT)**
+- 📋 LRU cache for parsed ASTs with memory management
+- 📋 Diff result caching with TTL expiration
+- 📋 Persistent cache across CLI invocations
+- 📋 Intelligent cache invalidation strategies
+
+**Watch Mode Optimization (Phase 2.3 - PLANNED)**
+- 📋 Debounced file changes with configurable timing (300ms default)
+- 📋 Batch processing of multiple changes
+- 📋 Priority queuing for critical files
+- 📋 Resource throttling for large repositories
 
 ### 📋 Planned Components
 
-**Virtual Graph Engine**
+**Virtual Graph Engine (Phase 3)**
 - 📋 Shadow graph management for incremental updates
-- 📋 AST diffing algorithms (Myers diff)
+- 📋 Enhanced AST diffing with virtual DOM pattern
 - 📋 Change reconciliation and patch application
 - 📋 Performance optimization with O(changes) complexity
 
-**Compact Controller**
+**Compact Controller (Phase 4)**
 - 📋 Interactive compaction strategies
 - 📋 Token optimization based on task requirements
 - 📋 Quality scoring and preview functionality
@@ -81,6 +97,9 @@ This document presents the high-level design for CodeContext, an automated repos
 Parser Performance:     <1ms per file (3.5KB TypeScript)
 Symbol Extraction:      15+ symbols from real AST data
 Analysis Time:          16ms for entire project (2 files)
+Diff Engine:            Multi-algorithm similarity scoring with 6 algorithms
+Rename Detection:       95%+ confidence scoring with heuristic patterns
+Dependency Tracking:    Multi-language import analysis (6+ languages)
 Test Coverage:          95.1% across all components
 Memory Usage:           <25MB for complete analysis
 CGO Integration:        Working with Tree-sitter C bindings
