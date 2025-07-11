@@ -3,7 +3,6 @@ package cache
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -452,9 +451,11 @@ func createTestGraph() *types.CodeGraph {
 				Id:   "test-symbol",
 				Name: "TestFunction",
 				Type: types.SymbolTypeFunction,
-				Location: types.FileLocation{
-					FilePath: "test.ts",
-					Line:     5,
+				Location: types.Location{
+					StartLine:   5,
+					StartColumn: 1,
+					EndLine:     5,
+					EndColumn:   20,
 				},
 			},
 		},

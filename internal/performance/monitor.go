@@ -231,8 +231,7 @@ func (m *Monitor) ForceMemoryCleanup() {
 	runtime.GC()
 	runtime.GC()
 	
-	// Return memory to OS
-	runtime.FreeOSMemory()
+	// Note: runtime.FreeOSMemory was removed in Go 1.16
 	
 	// Update metrics
 	m.metrics.mutex.Lock()

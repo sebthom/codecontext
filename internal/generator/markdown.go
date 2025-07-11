@@ -48,7 +48,7 @@ func (mg *MarkdownGenerator) Generate(graph *types.CodeGraph) (string, error) {
 		for _, symbol := range graph.Symbols {
 			sb.WriteString(fmt.Sprintf("### %s\n\n", symbol.Name))
 			sb.WriteString(fmt.Sprintf("- **Type:** %s\n", symbol.Kind))
-			sb.WriteString(fmt.Sprintf("- **File:** %s\n", symbol.FilePath))
+			sb.WriteString(fmt.Sprintf("- **File:** %s\n", symbol.FullyQualifiedName))
 			if symbol.Documentation != "" {
 				sb.WriteString(fmt.Sprintf("- **Documentation:** %s\n", symbol.Documentation))
 			}
@@ -56,18 +56,12 @@ func (mg *MarkdownGenerator) Generate(graph *types.CodeGraph) (string, error) {
 		}
 	}
 
-	// Dependencies section
-	if len(graph.Dependencies) > 0 {
+	// Dependencies section - derived from graph edges
+	if len(graph.Edges) > 0 {
 		sb.WriteString("## Dependencies\n\n")
-		for file, deps := range graph.Dependencies {
-			if len(deps) > 0 {
-				sb.WriteString(fmt.Sprintf("### %s\n\n", file))
-				for _, dep := range deps {
-					sb.WriteString(fmt.Sprintf("- %s\n", dep))
-				}
-				sb.WriteString("\n")
-			}
-		}
+		sb.WriteString("- Graph contains relationship data\n")
+		sb.WriteString(fmt.Sprintf("- Total edges: %d\n", len(graph.Edges)))
+		sb.WriteString("\n")
 	}
 
 	return sb.String(), nil

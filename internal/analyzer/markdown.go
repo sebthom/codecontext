@@ -175,10 +175,10 @@ func (mg *MarkdownGenerator) generateSymbolAnalysis() string {
 			symbols = append(symbols, symbol)
 		}
 		sort.Slice(symbols, func(i, j int) bool {
-			if symbols[i].Location.FilePath != symbols[j].Location.FilePath {
-				return symbols[i].Location.FilePath < symbols[j].Location.FilePath
+			if symbols[i].FullyQualifiedName != symbols[j].FullyQualifiedName {
+				return symbols[i].FullyQualifiedName < symbols[j].FullyQualifiedName
 			}
-			return symbols[i].Location.Line < symbols[j].Location.Line
+			return symbols[i].Location.StartLine < symbols[j].Location.StartLine
 		})
 		
 		for _, symbol := range symbols {
@@ -190,8 +190,8 @@ func (mg *MarkdownGenerator) generateSymbolAnalysis() string {
 			sb.WriteString(fmt.Sprintf("| `%s` | %s | `%s` | %d | `%s` |\n",
 				symbol.Name,
 				symbol.Type,
-				filepath.Base(symbol.Location.FilePath),
-				symbol.Location.Line,
+				filepath.Base(symbol.FullyQualifiedName),
+				symbol.Location.StartLine,
 				signature))
 		}
 	}

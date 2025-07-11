@@ -6,7 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
+	"fmt"
 	"testing"
 	"time"
 

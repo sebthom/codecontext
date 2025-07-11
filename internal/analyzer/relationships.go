@@ -183,12 +183,12 @@ func (ra *RelationshipAnalyzer) analyzeSymbolUsageRelationships(metrics *Relatio
 							"reference_type": ref.Type,
 							"context":        ref.Context,
 							"source_file":    filePath,
-							"target_file":    targetSymbol.Location.FilePath,
+							"target_file":    targetSymbol.FullyQualifiedName,
 						},
 					}
 					ra.graph.Edges[edgeId] = edge
 					
-					if symbol.Location.FilePath != targetSymbol.Location.FilePath {
+					if symbol.FullyQualifiedName != targetSymbol.FullyQualifiedName {
 						referenceCount++
 					}
 					usageCount++

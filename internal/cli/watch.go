@@ -142,7 +142,8 @@ func runWatchMode() error {
 	}
 	
 	// Start the watch manager
-	if err := manager.Start(); err != nil {
+	ctx := context.Background()
+	if err := manager.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start watch manager: %w", err)
 	}
 	
@@ -211,41 +212,40 @@ func NewWatchManager(config *WatchConfig) (*WatchManager, error) {
 	}
 	
 	// Initialize file watcher
-	watcherConfig := &watcher.Config{
-		DebounceTime:      config.UpdateInterval,
-		BufferSize:        1000,
-		MaxConcurrentJobs: config.MaxConcurrentFiles,
-		EnableMetrics:     true,
-		IgnorePatterns: []string{
+	watcherConfig := watcher.Config{
+		TargetDir:    config.TargetDir,
+		OutputFile:   config.OutputFile,
+		DebounceTime: config.UpdateInterval,
+		ExcludePatterns: []string{
 			".git/*",
 			"node_modules/*",
 			"*.log",
 			".codecontext/cache/*",
 		},
-		FileTypes: []string{
+		IncludeExts: []string{
 			".ts", ".tsx", ".js", ".jsx",
 			".go", ".py", ".java", ".cpp", ".c",
 			".rs", ".swift", ".kt", ".cs",
 		},
 	}
 	
-	manager.watcher = watcher.NewFileWatcher(watcherConfig)
+	manager.watcher, err = watcher.NewFileWatcher(watcherConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create file watcher: %w", err)
+	}
 	
 	return manager, nil
 }
 
 // Start begins the watch mode operation
-func (wm *WatchManager) Start() error {
+func (wm *WatchManager) Start(ctx context.Context) error {
 	// Perform initial analysis
 	if err := wm.performInitialAnalysis(); err != nil {
 		return fmt.Errorf("initial analysis failed: %w", err)
 	}
 	
-	// Setup file watcher callback
-	wm.watcher.SetCallback(wm.handleFileChanges)
-	
 	// Start file watcher
-	if err := wm.watcher.StartWatching(wm.config.TargetDir); err != nil {
+	if err := wm.watcher.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start file watcher: %w", err)
 	}
 	
@@ -275,7 +275,7 @@ func (wm *WatchManager) Stop() {
 // Cleanup releases resources
 func (wm *WatchManager) Cleanup() {
 	if wm.watcher != nil {
-		wm.watcher.Close()
+		wm.watcher.Stop()
 	}
 	
 	if wm.cache != nil {

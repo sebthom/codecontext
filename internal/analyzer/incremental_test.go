@@ -2,6 +2,7 @@ package analyzer
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -544,4 +545,84 @@ export class UserService {
 	for i := 0; i < b.N; i++ {
 		analyzer.processFileChange(ctx, change, result)
 	}
+}
+
+// Helper function for tests
+func createTestCodeGraph() *types.CodeGraph {
+	graph := &types.CodeGraph{
+		Nodes:   make(map[types.NodeId]*types.GraphNode),
+		Edges:   make(map[types.EdgeId]*types.GraphEdge),
+		Files:   make(map[string]*types.FileNode),
+		Symbols: make(map[types.SymbolId]*types.Symbol),
+		Metadata: &types.GraphMetadata{
+			TotalFiles:   2,
+			TotalSymbols: 3,
+			Generated:    time.Now(),
+			Version:      "test",
+		},
+	}
+
+	// Add test files
+	graph.Files["test1.ts"] = &types.FileNode{
+		Path:        "test1.ts",
+		Language:    "typescript",
+		Size:        500,
+		Lines:       25,
+		SymbolCount: 2,
+		ImportCount: 1,
+	}
+
+	graph.Files["test2.ts"] = &types.FileNode{
+		Path:        "test2.ts",
+		Language:    "typescript",
+		Size:        800,
+		Lines:       40,
+		SymbolCount: 1,
+		ImportCount: 2,
+	}
+
+	// Add test symbols
+	graph.Symbols["symbol1"] = &types.Symbol{
+		Id:   "symbol1",
+		Name: "TestFunction",
+		Type: types.SymbolTypeFunction,
+		Location: types.Location{
+			StartLine:   10,
+			StartColumn: 1,
+			EndLine:     10,
+			EndColumn:   30,
+		},
+		Signature: "function TestFunction(): void",
+		Language:  "typescript",
+	}
+
+	graph.Symbols["symbol2"] = &types.Symbol{
+		Id:   "symbol2",
+		Name: "TestClass",
+		Type: types.SymbolTypeClass,
+		Location: types.Location{
+			StartLine:   20,
+			StartColumn: 1,
+			EndLine:     20,
+			EndColumn:   30,
+		},
+		Signature: "class TestClass",
+		Language:  "typescript",
+	}
+
+	graph.Symbols["symbol3"] = &types.Symbol{
+		Id:   "symbol3",
+		Name: "TestVariable",
+		Type: types.SymbolTypeVariable,
+		Location: types.Location{
+			StartLine:   5,
+			StartColumn: 1,
+			EndLine:     5,
+			EndColumn:   30,
+		},
+		Signature: "const TestVariable: string",
+		Language:  "typescript",
+	}
+
+	return graph
 }

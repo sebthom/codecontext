@@ -135,7 +135,7 @@ func (gb *GraphBuilder) processFile(filePath string) error {
 				"symbolType": symbol.Type,
 				"language":   symbol.Language,
 				"signature":  symbol.Signature,
-				"line":       symbol.Location.Line,
+				"line":       symbol.Location.StartLine,
 			},
 		}
 		gb.graph.Nodes[symbolNode.Id] = symbolNode

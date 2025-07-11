@@ -358,7 +358,7 @@ func (m *Manager) nodeToSymbol(node *types.ASTNode, filePath, language string) *
 			Id:       types.SymbolId(fmt.Sprintf("func-%s-%d", filePath, node.Location.Line)),
 			Name:     m.extractSymbolName(node),
 			Type:     types.SymbolTypeFunction,
-			Location: node.Location,
+			Location: convertLocation(node.Location),
 			Signature: m.extractFunctionSignature(node),
 			Language: language,
 			Hash:     calculateHash(node.Value),
@@ -369,7 +369,7 @@ func (m *Manager) nodeToSymbol(node *types.ASTNode, filePath, language string) *
 			Id:       types.SymbolId(fmt.Sprintf("class-%s-%d", filePath, node.Location.Line)),
 			Name:     m.extractSymbolName(node),
 			Type:     types.SymbolTypeClass,
-			Location: node.Location,
+			Location: convertLocation(node.Location),
 			Language: language,
 			Hash:     calculateHash(node.Value),
 			LastModified: time.Now(),
@@ -379,7 +379,7 @@ func (m *Manager) nodeToSymbol(node *types.ASTNode, filePath, language string) *
 			Id:       types.SymbolId(fmt.Sprintf("interface-%s-%d", filePath, node.Location.Line)),
 			Name:     m.extractSymbolName(node),
 			Type:     types.SymbolTypeInterface,
-			Location: node.Location,
+			Location: convertLocation(node.Location),
 			Language: language,
 			Hash:     calculateHash(node.Value),
 			LastModified: time.Now(),
@@ -389,7 +389,7 @@ func (m *Manager) nodeToSymbol(node *types.ASTNode, filePath, language string) *
 			Id:       types.SymbolId(fmt.Sprintf("type-%s-%d", filePath, node.Location.Line)),
 			Name:     m.extractSymbolName(node),
 			Type:     types.SymbolTypeType,
-			Location: node.Location,
+			Location: convertLocation(node.Location),
 			Language: language,
 			Hash:     calculateHash(node.Value),
 			LastModified: time.Now(),
@@ -399,7 +399,7 @@ func (m *Manager) nodeToSymbol(node *types.ASTNode, filePath, language string) *
 			Id:       types.SymbolId(fmt.Sprintf("var-%s-%d", filePath, node.Location.Line)),
 			Name:     m.extractSymbolName(node),
 			Type:     types.SymbolTypeVariable,
-			Location: node.Location,
+			Location: convertLocation(node.Location),
 			Language: language,
 			Hash:     calculateHash(node.Value),
 			LastModified: time.Now(),
@@ -409,7 +409,7 @@ func (m *Manager) nodeToSymbol(node *types.ASTNode, filePath, language string) *
 			Id:       types.SymbolId(fmt.Sprintf("method-%s-%d", filePath, node.Location.Line)),
 			Name:     m.extractSymbolName(node),
 			Type:     types.SymbolTypeMethod,
-			Location: node.Location,
+			Location: convertLocation(node.Location),
 			Signature: m.extractFunctionSignature(node),
 			Language: language,
 			Hash:     calculateHash(node.Value),
@@ -420,7 +420,7 @@ func (m *Manager) nodeToSymbol(node *types.ASTNode, filePath, language string) *
 			Id:       types.SymbolId(fmt.Sprintf("import-%s-%d", filePath, node.Location.Line)),
 			Name:     m.extractImportName(node),
 			Type:     types.SymbolTypeImport,
-			Location: node.Location,
+			Location: convertLocation(node.Location),
 			Language: language,
 			Hash:     calculateHash(node.Value),
 			LastModified: time.Now(),
@@ -430,7 +430,7 @@ func (m *Manager) nodeToSymbol(node *types.ASTNode, filePath, language string) *
 			Id:       types.SymbolId(fmt.Sprintf("export-%s-%d", filePath, node.Location.Line)),
 			Name:     m.extractSymbolName(node),
 			Type:     types.SymbolTypeNamespace, // Using namespace for exports
-			Location: node.Location,
+			Location: convertLocation(node.Location),
 			Language: language,
 			Hash:     calculateHash(node.Value),
 			LastModified: time.Now(),
@@ -506,6 +506,16 @@ func (m *Manager) getExtensionsForLanguage(name string) []string {
 func calculateHash(content string) string {
 	// Simple hash implementation - in production, use crypto/sha256
 	return fmt.Sprintf("hash-%d", len(content))
+}
+
+// convertLocation converts FileLocation to new Location type for diff compatibility
+func convertLocation(loc types.FileLocation) types.Location {
+	return types.Location{
+		StartLine:   loc.Line,
+		StartColumn: loc.Column,
+		EndLine:     loc.Line,
+		EndColumn:   loc.Column + 10, // Approximate end column
+	}
 }
 
 // extractSymbolName extracts the name from a symbol node

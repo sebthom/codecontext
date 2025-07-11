@@ -533,7 +533,7 @@ func (d *ASTDiffer) detectRenames(changeSet *SymbolChangeSet) {
 func (d *ASTDiffer) symbolsAreSimilar(sym1, sym2 *types.Symbol) bool {
 	// Check if two symbols are similar (potential rename)
 	return sym1.Type == sym2.Type && 
-		   sym1.Location.Line == sym2.Location.Line &&
+		   sym1.Location.StartLine == sym2.Location.StartLine &&
 		   strings.Contains(sym1.Signature, sym2.Signature[:min(len(sym2.Signature), 10)])
 }
 

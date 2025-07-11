@@ -81,7 +81,7 @@ func createTestGraph() *types.CodeGraph {
 		Id:       "user-class",
 		Name:     "User",
 		Type:     types.SymbolTypeClass,
-		Location: types.FileLocation{FilePath: "src/user.ts", Line: 10},
+		Location: types.Location{StartLine: 10, StartColumn: 1, EndLine: 10, EndColumn: 30},
 		Signature: "class User { constructor(data: UserType) }",
 		Language: "typescript",
 	}
@@ -90,7 +90,7 @@ func createTestGraph() *types.CodeGraph {
 		Id:       "user-interface",
 		Name:     "UserInterface",
 		Type:     types.SymbolTypeInterface,
-		Location: types.FileLocation{FilePath: "src/user.ts", Line: 5},
+		Location: types.Location{StartLine: 5, StartColumn: 1, EndLine: 5, EndColumn: 30},
 		Signature: "interface UserInterface { id: number; name: string }",
 		Language: "typescript",
 	}
@@ -99,7 +99,7 @@ func createTestGraph() *types.CodeGraph {
 		Id:       "user-type",
 		Name:     "UserType",
 		Type:     types.SymbolTypeType,
-		Location: types.FileLocation{FilePath: "src/types.ts", Line: 3},
+		Location: types.Location{StartLine: 3, StartColumn: 1, EndLine: 3, EndColumn: 30},
 		Signature: "type UserType = { id: number; name: string }",
 		Language: "typescript",
 	}
@@ -108,7 +108,7 @@ func createTestGraph() *types.CodeGraph {
 		Id:       "validate-function",
 		Name:     "validateUser",
 		Type:     types.SymbolTypeFunction,
-		Location: types.FileLocation{FilePath: "src/utils.ts", Line: 5},
+		Location: types.Location{StartLine: 5, StartColumn: 1, EndLine: 5, EndColumn: 30},
 		Signature: "function validateUser(user: UserType): boolean",
 		Language: "typescript",
 	}
@@ -267,7 +267,7 @@ func TestFindIsolatedFiles(t *testing.T) {
 		Id:       "isolated-function",
 		Name:     "isolatedFunction",
 		Type:     types.SymbolTypeFunction,
-		Location: types.FileLocation{FilePath: "src/isolated.ts", Line: 3},
+		Location: types.Location{StartLine: 3, StartColumn: 1, EndLine: 3, EndColumn: 30},
 		Signature: "function isolatedFunction(): void",
 		Language: "typescript",
 	}

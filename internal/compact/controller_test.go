@@ -554,9 +554,11 @@ func createTestCodeGraph() *types.CodeGraph {
 		Id:   "symbol1",
 		Name: "TestFunction",
 		Type: types.SymbolTypeFunction,
-		Location: types.FileLocation{
-			FilePath: "test1.ts",
-			Line:     10,
+		Location: types.Location{
+			StartLine:   10,
+			StartColumn: 1,
+			EndLine:     10,
+			EndColumn:   30,
 		},
 		Signature: "function TestFunction(): void",
 		Language:  "typescript",
@@ -566,9 +568,11 @@ func createTestCodeGraph() *types.CodeGraph {
 		Id:   "symbol2",
 		Name: "TestClass",
 		Type: types.SymbolTypeClass,
-		Location: types.FileLocation{
-			FilePath: "test1.ts",
-			Line:     20,
+		Location: types.Location{
+			StartLine:   20,
+			StartColumn: 1,
+			EndLine:     20,
+			EndColumn:   30,
 		},
 		Signature: "class TestClass",
 		Language:  "typescript",
@@ -578,9 +582,11 @@ func createTestCodeGraph() *types.CodeGraph {
 		Id:   "symbol3",
 		Name: "TestVariable",
 		Type: types.SymbolTypeVariable,
-		Location: types.FileLocation{
-			FilePath: "test2.ts",
-			Line:     5,
+		Location: types.Location{
+			StartLine:   5,
+			StartColumn: 1,
+			EndLine:     5,
+			EndColumn:   30,
 		},
 		Signature: "const TestVariable: string",
 		Language:  "typescript",
@@ -635,9 +641,11 @@ func createLargeTestGraph() *types.CodeGraph {
 			Id:   symbolId,
 			Name: fmt.Sprintf("Symbol%d", i),
 			Type: types.SymbolTypeFunction,
-			Location: types.FileLocation{
-				FilePath: fileName,
-				Line:     10,
+			Location: types.Location{
+				StartLine:   10,
+				StartColumn: 1,
+				EndLine:     10,
+				EndColumn:   30,
 			},
 			Language: "typescript",
 		}

@@ -17,10 +17,11 @@ func TestSymbol(t *testing.T) {
 				Id:   "test-func-1",
 				Name: "testFunction",
 				Type: SymbolTypeFunction,
-				Location: FileLocation{
-					FilePath: "test.ts",
-					Line:     10,
-					Column:   5,
+				Location: Location{
+					StartLine:   10,
+					StartColumn: 5,
+					EndLine:     10,
+					EndColumn:   20,
 				},
 				Language: "typescript",
 				Hash:     "abc123",
@@ -33,10 +34,11 @@ func TestSymbol(t *testing.T) {
 				Id:   "test-class-1",
 				Name: "TestClass",
 				Type: SymbolTypeClass,
-				Location: FileLocation{
-					FilePath: "test.ts",
-					Line:     1,
-					Column:   0,
+				Location: Location{
+					StartLine:   1,
+					StartColumn: 0,
+					EndLine:     1,
+					EndColumn:   15,
 				},
 				Language: "typescript",
 				Hash:     "def456",
@@ -65,10 +67,11 @@ func TestGraphNode(t *testing.T) {
 		Id:   "test-func-1",
 		Name: "testFunction",
 		Type: SymbolTypeFunction,
-		Location: FileLocation{
-			FilePath: "test.ts",
-			Line:     10,
-			Column:   5,
+		Location: Location{
+			StartLine:   10,
+			StartColumn: 5,
+			EndLine:     10,
+			EndColumn:   20,
 		},
 		Language: "typescript",
 		Hash:     "abc123",
@@ -76,7 +79,7 @@ func TestGraphNode(t *testing.T) {
 
 	node := GraphNode{
 		Id:              "node-1",
-		Symbol:          symbol,
+		Symbol:          &symbol,
 		Importance:      0.85,
 		Connections:     3,
 		ChangeFrequency: 5,
@@ -101,13 +104,13 @@ func TestGraphNode(t *testing.T) {
 func TestCodeGraph(t *testing.T) {
 	graph := CodeGraph{
 		Nodes: make(map[NodeId]*GraphNode),
-		Edges: make(map[NodeId][]*Edge),
-		Metadata: GraphMetadata{
+		Edges: make(map[EdgeId]*GraphEdge),
+		Metadata: &GraphMetadata{
 			ProjectName:    "test-project",
 			ProjectPath:    "/test/path",
 			TotalFiles:     10,
 			TotalSymbols:   50,
-			Languages:      []string{"typescript", "javascript"},
+			Languages:      map[string]int{"typescript": 5, "javascript": 5},
 			GeneratedAt:    time.Now(),
 			ProcessingTime: time.Millisecond * 100,
 			TokenCount:     150000,

@@ -128,7 +128,7 @@ const result = testFunction("hello");
 	for _, symbol := range graph.Symbols {
 		t.Logf("Symbol: %s (%s) at %s:%d", 
 			symbol.Name, symbol.Type, 
-			filepath.Base(symbol.Location.FilePath), symbol.Location.Line)
+			filepath.Base(symbol.FullyQualifiedName), symbol.Location.StartLine)
 	}
 }
 

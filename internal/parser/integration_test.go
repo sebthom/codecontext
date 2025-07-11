@@ -118,7 +118,7 @@ let currentUser: User | null = null;`
 	// Check for expected symbol types
 	var foundInterface, foundClass, foundFunction bool
 	for _, symbol := range symbols {
-		t.Logf("Found symbol: %s (%s) at line %d", symbol.Name, symbol.Type, symbol.Location.Line)
+		t.Logf("Found symbol: %s (%s) at line %d", symbol.Name, symbol.Type, symbol.Location.StartLine)
 		
 		switch symbol.Type {
 		case types.SymbolTypeInterface:
