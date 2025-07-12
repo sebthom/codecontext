@@ -1,11 +1,11 @@
 # Homebrew Formula for CodeContext
 class Codecontext < Formula
   desc "Intelligent context maps for AI-powered development tools"
-  homepage "https://github.com/nuthan-ms/codecontext"
-  url "https://github.com/nuthan-ms/codecontext/archive/v2.0.0.tar.gz"
+  homepage "https://github.com/nmakod/codecontext"
+  url "https://github.com/nmakod/codecontext/archive/v2.0.0.tar.gz"
   sha256 "72f79124718fe1d5f9787673ac62c4871168a8927f948ca99156d02c16da89c9"
   license "MIT"
-  head "https://github.com/nuthan-ms/codecontext.git", branch: "main"
+  head "https://github.com/nmakod/codecontext.git", branch: "main"
 
   depends_on "go" => :build
 
