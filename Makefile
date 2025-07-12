@@ -1,6 +1,6 @@
 # CodeContext Makefile for Building and Distribution
 
-VERSION ?= 2.0.0
+VERSION ?= 2.0.2
 BINARY_NAME = codecontext
 BUILD_DIR = dist
 LDFLAGS = -ldflags "-X main.version=$(VERSION) -X main.buildDate=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')"

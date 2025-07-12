@@ -11,7 +11,7 @@ import (
 var (
 	cfgFile string
 	// Version information
-	appVersion = "2.0.0"
+	appVersion = "2.0.2"
 	buildDate  = "unknown"
 	gitCommit  = "unknown"
 

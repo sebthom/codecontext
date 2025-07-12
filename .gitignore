@@ -2,3 +2,6 @@
 .codecontext/logs/
 .codecontext/cache/
 .codecontext/logs/
+
+.test*
+dist/
