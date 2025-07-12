@@ -18,68 +18,68 @@ type Reconciler struct {
 
 // ReconcilerConfig holds configuration for the reconciler
 type ReconcilerConfig struct {
-	MaxConcurrency      int           `json:"max_concurrency"`       // Maximum concurrent operations
-	ConflictResolution  string        `json:"conflict_resolution"`   // "abort", "force", "merge"
-	DependencyOrdering  bool          `json:"dependency_ordering"`   // Enable dependency-aware ordering
-	ValidationEnabled   bool          `json:"validation_enabled"`    // Enable pre/post validation
-	RollbackEnabled     bool          `json:"rollback_enabled"`      // Enable rollback capability
-	MaxPatchSize        int           `json:"max_patch_size"`        // Maximum patch size
-	BatchTimeout        time.Duration `json:"batch_timeout"`         // Timeout for batch operations
+	MaxConcurrency     int           `json:"max_concurrency"`     // Maximum concurrent operations
+	ConflictResolution string        `json:"conflict_resolution"` // "abort", "force", "merge"
+	DependencyOrdering bool          `json:"dependency_ordering"` // Enable dependency-aware ordering
+	ValidationEnabled  bool          `json:"validation_enabled"`  // Enable pre/post validation
+	RollbackEnabled    bool          `json:"rollback_enabled"`    // Enable rollback capability
+	MaxPatchSize       int           `json:"max_patch_size"`      // Maximum patch size
+	BatchTimeout       time.Duration `json:"batch_timeout"`       // Timeout for batch operations
 }
 
 // ReconcilerMetrics tracks reconciliation performance
 type ReconcilerMetrics struct {
-	PlansGenerated    int64         `json:"plans_generated"`
-	PlansApplied      int64         `json:"plans_applied"`
-	PlansRolledBack   int64         `json:"plans_rolled_back"`
-	AvgPlanTime       time.Duration `json:"avg_plan_time"`
-	AvgApplyTime      time.Duration `json:"avg_apply_time"`
-	ConflictsDetected int64         `json:"conflicts_detected"`
-	ConflictsResolved int64         `json:"conflicts_resolved"`
-	LastReconciliation time.Time    `json:"last_reconciliation"`
+	PlansGenerated     int64         `json:"plans_generated"`
+	PlansApplied       int64         `json:"plans_applied"`
+	PlansRolledBack    int64         `json:"plans_rolled_back"`
+	AvgPlanTime        time.Duration `json:"avg_plan_time"`
+	AvgApplyTime       time.Duration `json:"avg_apply_time"`
+	ConflictsDetected  int64         `json:"conflicts_detected"`
+	ConflictsResolved  int64         `json:"conflicts_resolved"`
+	LastReconciliation time.Time     `json:"last_reconciliation"`
 }
 
 // ConflictResolution represents a conflict resolution strategy
 type ConflictResolution struct {
-	Type        ConflictType `json:"type"`
-	Strategy    string       `json:"strategy"`
-	Resolution  string       `json:"resolution"`
-	Confidence  float64      `json:"confidence"`
-	Metadata    map[string]interface{} `json:"metadata"`
+	Type       ConflictType           `json:"type"`
+	Strategy   string                 `json:"strategy"`
+	Resolution string                 `json:"resolution"`
+	Confidence float64                `json:"confidence"`
+	Metadata   map[string]interface{} `json:"metadata"`
 }
 
 // ConflictType represents the type of conflict
 type ConflictType string
 
 const (
-	ConflictTypeValueMismatch   ConflictType = "value_mismatch"
-	ConflictTypeStructural      ConflictType = "structural"
-	ConflictTypeDependency      ConflictType = "dependency"
-	ConflictTypeOrderingIssue   ConflictType = "ordering"
-	ConflictTypeResourceLock    ConflictType = "resource_lock"
+	ConflictTypeValueMismatch ConflictType = "value_mismatch"
+	ConflictTypeStructural    ConflictType = "structural"
+	ConflictTypeDependency    ConflictType = "dependency"
+	ConflictTypeOrderingIssue ConflictType = "ordering"
+	ConflictTypeResourceLock  ConflictType = "resource_lock"
 )
 
 // ValidationResult represents the result of validation
 type ValidationResult struct {
-	Valid       bool                   `json:"valid"`
-	Errors      []ValidationError      `json:"errors"`
-	Warnings    []ValidationWarning    `json:"warnings"`
-	Suggestions []string               `json:"suggestions"`
+	Valid       bool                `json:"valid"`
+	Errors      []ValidationError   `json:"errors"`
+	Warnings    []ValidationWarning `json:"warnings"`
+	Suggestions []string            `json:"suggestions"`
 }
 
 // ValidationError represents a validation error
 type ValidationError struct {
-	Type        string `json:"type"`
-	Message     string `json:"message"`
-	NodeID      string `json:"node_id,omitempty"`
-	Severity    string `json:"severity"`
+	Type     string `json:"type"`
+	Message  string `json:"message"`
+	NodeID   string `json:"node_id,omitempty"`
+	Severity string `json:"severity"`
 }
 
 // ValidationWarning represents a validation warning
 type ValidationWarning struct {
-	Type        string `json:"type"`
-	Message     string `json:"message"`
-	NodeID      string `json:"node_id,omitempty"`
+	Type    string `json:"type"`
+	Message string `json:"message"`
+	NodeID  string `json:"node_id,omitempty"`
 }
 
 // NewReconciler creates a new reconciler
@@ -221,7 +221,7 @@ func (r *Reconciler) generateFilePatches(actual, shadow *types.CodeGraph, plan *
 	// Compare files in actual vs shadow
 	for filePath, shadowFile := range shadow.Files {
 		actualFile, exists := actual.Files[filePath]
-		
+
 		if !exists {
 			// File added in shadow
 			patch := GraphPatch{
@@ -279,7 +279,7 @@ func (r *Reconciler) generateSymbolPatches(actual, shadow *types.CodeGraph, plan
 	// Compare symbols in actual vs shadow
 	for symbolId, shadowSymbol := range shadow.Symbols {
 		actualSymbol, exists := actual.Symbols[symbolId]
-		
+
 		if !exists {
 			// Symbol added in shadow
 			patch := GraphPatch{
@@ -497,22 +497,22 @@ func (r *Reconciler) applyReorderPatch(patch GraphPatch, graph *types.CodeGraph)
 // Helper functions
 
 func (r *Reconciler) filesAreDifferent(file1, file2 *types.FileNode) bool {
-	return file1.Size != file2.Size || 
-		   file1.Lines != file2.Lines ||
-		   file1.SymbolCount != file2.SymbolCount ||
-		   file1.ImportCount != file2.ImportCount
+	return file1.Size != file2.Size ||
+		file1.Lines != file2.Lines ||
+		file1.SymbolCount != file2.SymbolCount ||
+		file1.ImportCount != file2.ImportCount
 }
 
 func (r *Reconciler) symbolsAreDifferent(sym1, sym2 *types.Symbol) bool {
 	return sym1.Name != sym2.Name ||
-		   sym1.Type != sym2.Type ||
-		   sym1.Signature != sym2.Signature ||
-		   sym1.Documentation != sym2.Documentation
+		sym1.Type != sym2.Type ||
+		sym1.Signature != sym2.Signature ||
+		sym1.Documentation != sym2.Documentation
 }
 
 func (r *Reconciler) generateFilePropertyChanges(oldFile, newFile *types.FileNode) []PropertyChange {
 	changes := make([]PropertyChange, 0)
-	
+
 	if oldFile.Size != newFile.Size {
 		changes = append(changes, PropertyChange{
 			Property: "size",
@@ -520,7 +520,7 @@ func (r *Reconciler) generateFilePropertyChanges(oldFile, newFile *types.FileNod
 			NewValue: newFile.Size,
 		})
 	}
-	
+
 	if oldFile.Lines != newFile.Lines {
 		changes = append(changes, PropertyChange{
 			Property: "lines",
@@ -528,13 +528,13 @@ func (r *Reconciler) generateFilePropertyChanges(oldFile, newFile *types.FileNod
 			NewValue: newFile.Lines,
 		})
 	}
-	
+
 	return changes
 }
 
 func (r *Reconciler) generateSymbolPropertyChanges(oldSymbol, newSymbol *types.Symbol) []PropertyChange {
 	changes := make([]PropertyChange, 0)
-	
+
 	if oldSymbol.Name != newSymbol.Name {
 		changes = append(changes, PropertyChange{
 			Property: "name",
@@ -542,7 +542,7 @@ func (r *Reconciler) generateSymbolPropertyChanges(oldSymbol, newSymbol *types.S
 			NewValue: newSymbol.Name,
 		})
 	}
-	
+
 	if oldSymbol.Signature != newSymbol.Signature {
 		changes = append(changes, PropertyChange{
 			Property: "signature",
@@ -550,7 +550,7 @@ func (r *Reconciler) generateSymbolPropertyChanges(oldSymbol, newSymbol *types.S
 			NewValue: newSymbol.Signature,
 		})
 	}
-	
+
 	return changes
 }
 
@@ -564,7 +564,7 @@ func (r *Reconciler) calculateTokenImpact(actual, shadow *types.CodeGraph) *Toke
 	// Calculate token impact (simplified)
 	beforeTokens := len(actual.Files)*100 + len(actual.Symbols)*50
 	afterTokens := len(shadow.Files)*100 + len(shadow.Symbols)*50
-	
+
 	return &TokenDelta{
 		Before: beforeTokens,
 		After:  afterTokens,

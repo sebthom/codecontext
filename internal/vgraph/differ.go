@@ -11,33 +11,33 @@ import (
 
 // ASTDiffer computes structural differences between AST versions
 type ASTDiffer struct {
-	config        *DiffConfig
-	cache         map[string]*ASTDiff
-	hashCache     map[string]string
+	config    *DiffConfig
+	cache     map[string]*ASTDiff
+	hashCache map[string]string
 }
 
 // DiffConfig holds configuration for AST diffing
 type DiffConfig struct {
-	Algorithm       string  `json:"algorithm"`        // myers, patience, histogram
-	MaxDepth        int     `json:"max_depth"`        // Maximum diff depth
-	UseTreeHashing  bool    `json:"use_tree_hashing"` // Enable tree hashing optimization
-	UseMemoization  bool    `json:"use_memoization"`  // Enable memoization
+	Algorithm           string  `json:"algorithm"`            // myers, patience, histogram
+	MaxDepth            int     `json:"max_depth"`            // Maximum diff depth
+	UseTreeHashing      bool    `json:"use_tree_hashing"`     // Enable tree hashing optimization
+	UseMemoization      bool    `json:"use_memoization"`      // Enable memoization
 	SimilarityThreshold float64 `json:"similarity_threshold"` // Threshold for similarity detection
 }
 
 // ASTDiff represents the difference between two AST versions
 type ASTDiff struct {
-	FileID           string             `json:"file_id"`
-	FromVersion      string             `json:"from_version"`
-	ToVersion        string             `json:"to_version"`
-	Additions        []ASTNode          `json:"additions"`
-	Deletions        []ASTNode          `json:"deletions"`
-	Modifications    []ASTModification  `json:"modifications"`
+	FileID            string            `json:"file_id"`
+	FromVersion       string            `json:"from_version"`
+	ToVersion         string            `json:"to_version"`
+	Additions         []ASTNode         `json:"additions"`
+	Deletions         []ASTNode         `json:"deletions"`
+	Modifications     []ASTModification `json:"modifications"`
 	StructuralChanges bool              `json:"structural_changes"`
-	ImpactRadius     *ImpactAnalysis    `json:"impact_radius"`
-	Similarity       float64            `json:"similarity"`
-	ComputationTime  time.Duration      `json:"computation_time"`
-	Hash             string             `json:"hash"`
+	ImpactRadius      *ImpactAnalysis   `json:"impact_radius"`
+	Similarity        float64           `json:"similarity"`
+	ComputationTime   time.Duration     `json:"computation_time"`
+	Hash              string            `json:"hash"`
 }
 
 // ASTNode represents a node in the AST
@@ -52,12 +52,12 @@ type ASTNode struct {
 
 // ASTModification represents a modification to an AST node
 type ASTModification struct {
-	NodeID      string             `json:"node_id"`
-	Type        ModificationType   `json:"type"`
-	OldValue    interface{}        `json:"old_value"`
-	NewValue    interface{}        `json:"new_value"`
-	FieldName   string             `json:"field_name"`
-	Impact      ImpactLevel        `json:"impact"`
+	NodeID    string           `json:"node_id"`
+	Type      ModificationType `json:"type"`
+	OldValue  interface{}      `json:"old_value"`
+	NewValue  interface{}      `json:"new_value"`
+	FieldName string           `json:"field_name"`
+	Impact    ImpactLevel      `json:"impact"`
 }
 
 // ModificationType represents the type of modification
@@ -84,36 +84,36 @@ const (
 
 // ImpactAnalysis represents the impact analysis of changes
 type ImpactAnalysis struct {
-	AffectedFiles   []string               `json:"affected_files"`
-	AffectedSymbols []types.SymbolId       `json:"affected_symbols"`
-	PropagationTree *PropagationNode       `json:"propagation_tree"`
-	RiskScore       float64                `json:"risk_score"`
-	Recommendations []string               `json:"recommendations"`
+	AffectedFiles   []string         `json:"affected_files"`
+	AffectedSymbols []types.SymbolId `json:"affected_symbols"`
+	PropagationTree *PropagationNode `json:"propagation_tree"`
+	RiskScore       float64          `json:"risk_score"`
+	Recommendations []string         `json:"recommendations"`
 }
 
 // PropagationNode represents a node in the change propagation tree
 type PropagationNode struct {
-	ID           string             `json:"id"`
-	Type         string             `json:"type"`
-	Impact       ImpactLevel        `json:"impact"`
-	Children     []*PropagationNode `json:"children"`
-	Probability  float64            `json:"probability"`
+	ID          string             `json:"id"`
+	Type        string             `json:"type"`
+	Impact      ImpactLevel        `json:"impact"`
+	Children    []*PropagationNode `json:"children"`
+	Probability float64            `json:"probability"`
 }
 
 // SymbolChangeSet represents a set of symbol changes
 type SymbolChangeSet struct {
-	Added    map[types.SymbolId]*types.Symbol        `json:"added"`
-	Removed  map[types.SymbolId]*types.Symbol        `json:"removed"`
-	Modified map[types.SymbolId]*SymbolModification  `json:"modified"`
-	Renamed  map[types.SymbolId]*RenameInfo          `json:"renamed"`
+	Added    map[types.SymbolId]*types.Symbol       `json:"added"`
+	Removed  map[types.SymbolId]*types.Symbol       `json:"removed"`
+	Modified map[types.SymbolId]*SymbolModification `json:"modified"`
+	Renamed  map[types.SymbolId]*RenameInfo         `json:"renamed"`
 }
 
 // SymbolModification represents a modification to a symbol
 type SymbolModification struct {
-	Symbol      *types.Symbol      `json:"symbol"`
-	Changes     []PropertyChange   `json:"changes"`
-	Impact      ImpactLevel        `json:"impact"`
-	Confidence  float64            `json:"confidence"`
+	Symbol     *types.Symbol    `json:"symbol"`
+	Changes    []PropertyChange `json:"changes"`
+	Impact     ImpactLevel      `json:"impact"`
+	Confidence float64          `json:"confidence"`
 }
 
 // RenameInfo represents information about a renamed symbol
@@ -128,9 +128,9 @@ func NewASTDiffer() *ASTDiffer {
 	return &ASTDiffer{
 		config: &DiffConfig{
 			Algorithm:           "myers",
-			MaxDepth:           50,
-			UseTreeHashing:     true,
-			UseMemoization:     true,
+			MaxDepth:            50,
+			UseTreeHashing:      true,
+			UseMemoization:      true,
 			SimilarityThreshold: 0.8,
 		},
 		cache:     make(map[string]*ASTDiff),
@@ -144,7 +144,7 @@ func (d *ASTDiffer) ComputeDiff(oldAST, newAST *types.AST) (*ASTDiff, error) {
 
 	// Generate cache key
 	cacheKey := d.generateCacheKey(oldAST, newAST)
-	
+
 	// Check cache first
 	if d.config.UseMemoization {
 		if cached, exists := d.cache[cacheKey]; exists {
@@ -165,10 +165,10 @@ func (d *ASTDiffer) ComputeDiff(oldAST, newAST *types.AST) (*ASTDiff, error) {
 
 	// Compute structural diff
 	diff := &ASTDiff{
-		FileID:           oldAST.FilePath,
-		FromVersion:      oldAST.Version,
-		ToVersion:        newAST.Version,
-		ComputationTime:  0, // Will be set at the end
+		FileID:          oldAST.FilePath,
+		FromVersion:     oldAST.Version,
+		ToVersion:       newAST.Version,
+		ComputationTime: 0, // Will be set at the end
 	}
 
 	// Perform diff computation based on algorithm
@@ -310,10 +310,10 @@ type ImpactGraph struct {
 
 // ImpactNode represents a node in the impact graph
 type ImpactNode struct {
-	ID       string      `json:"id"`
-	Type     string      `json:"type"`
-	Impact   ImpactLevel `json:"impact"`
-	Risk     float64     `json:"risk"`
+	ID       string                 `json:"id"`
+	Type     string                 `json:"type"`
+	Impact   ImpactLevel            `json:"impact"`
+	Risk     float64                `json:"risk"`
 	Metadata map[string]interface{} `json:"metadata"`
 }
 
@@ -329,7 +329,7 @@ type ImpactEdge struct {
 func (d *ASTDiffer) myersDiff(oldNodes, newNodes []ASTNode, diff *ASTDiff) error {
 	// Simplified Myers algorithm implementation
 	// In production, this would be a full implementation of the Myers algorithm
-	
+
 	oldSet := make(map[string]ASTNode)
 	newSet := make(map[string]ASTNode)
 
@@ -394,10 +394,10 @@ func (d *ASTDiffer) convertAST(ast *types.AST) ([]ASTNode, error) {
 	// Convert AST to internal format
 	// This is a simplified implementation
 	nodes := make([]ASTNode, 0)
-	
+
 	// In a real implementation, we would traverse the Tree-sitter AST
 	// and convert each node to our internal format
-	
+
 	return nodes, nil
 }
 
@@ -431,13 +431,13 @@ func (d *ASTDiffer) calculateSimilarity(oldNodes, newNodes []ASTNode) float64 {
 }
 
 func (d *ASTDiffer) hasStructuralChanges(diff *ASTDiff) bool {
-	return len(diff.Additions) > 0 || len(diff.Deletions) > 0 || 
-		   len(diff.Modifications) > 0
+	return len(diff.Additions) > 0 || len(diff.Deletions) > 0 ||
+		len(diff.Modifications) > 0
 }
 
 func (d *ASTDiffer) generateDiffHash(diff *ASTDiff) string {
 	h := sha256.New()
-	h.Write([]byte(fmt.Sprintf("%s:%d:%d:%d", 
+	h.Write([]byte(fmt.Sprintf("%s:%d:%d:%d",
 		diff.FileID, len(diff.Additions), len(diff.Deletions), len(diff.Modifications))))
 	return fmt.Sprintf("%x", h.Sum(nil))[:16]
 }
@@ -475,7 +475,7 @@ func (d *ASTDiffer) computeImpactAnalysis(diff *ASTDiff) (*ImpactAnalysis, error
 
 func (d *ASTDiffer) calculateRiskScore(diff *ASTDiff) float64 {
 	score := 0.0
-	score += float64(len(diff.Deletions)) * 0.5    // Deletions are risky
+	score += float64(len(diff.Deletions)) * 0.5     // Deletions are risky
 	score += float64(len(diff.Modifications)) * 0.3 // Modifications are moderately risky
 	score += float64(len(diff.Additions)) * 0.1     // Additions are less risky
 
@@ -521,7 +521,7 @@ func (d *ASTDiffer) detectRenames(changeSet *SymbolChangeSet) {
 					Confidence: 0.8,
 				}
 				changeSet.Renamed[removedId] = renameInfo
-				
+
 				// Remove from added/removed as they are now considered renamed
 				delete(changeSet.Removed, removedId)
 				delete(changeSet.Added, addedId)
@@ -532,14 +532,14 @@ func (d *ASTDiffer) detectRenames(changeSet *SymbolChangeSet) {
 
 func (d *ASTDiffer) symbolsAreSimilar(sym1, sym2 *types.Symbol) bool {
 	// Check if two symbols are similar (potential rename)
-	return sym1.Type == sym2.Type && 
-		   sym1.Location.StartLine == sym2.Location.StartLine &&
-		   strings.Contains(sym1.Signature, sym2.Signature[:min(len(sym2.Signature), 10)])
+	return sym1.Type == sym2.Type &&
+		sym1.Location.StartLine == sym2.Location.StartLine &&
+		strings.Contains(sym1.Signature, sym2.Signature[:min(len(sym2.Signature), 10)])
 }
 
 func (d *ASTDiffer) calculateModificationRisk(mod *SymbolModification) float64 {
 	risk := 0.0
-	
+
 	switch mod.Impact {
 	case ImpactCritical:
 		risk = 0.9
@@ -550,7 +550,7 @@ func (d *ASTDiffer) calculateModificationRisk(mod *SymbolModification) float64 {
 	case ImpactLow:
 		risk = 0.1
 	}
-	
+
 	return risk * mod.Confidence
 }
 

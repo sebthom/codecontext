@@ -9,11 +9,11 @@ import (
 
 func createTestGraph() *types.CodeGraph {
 	graph := &types.CodeGraph{
-		Nodes:       make(map[types.NodeId]*types.GraphNode),
-		Edges:       make(map[types.EdgeId]*types.GraphEdge),
-		Files:       make(map[string]*types.FileNode),
-		Symbols:     make(map[types.SymbolId]*types.Symbol),
-		Metadata:    &types.GraphMetadata{},
+		Nodes:    make(map[types.NodeId]*types.GraphNode),
+		Edges:    make(map[types.EdgeId]*types.GraphEdge),
+		Files:    make(map[string]*types.FileNode),
+		Symbols:  make(map[types.SymbolId]*types.Symbol),
+		Metadata: &types.GraphMetadata{},
 	}
 
 	// Create test files
@@ -78,39 +78,39 @@ func createTestGraph() *types.CodeGraph {
 
 	// Create test symbols
 	userClass := &types.Symbol{
-		Id:       "user-class",
-		Name:     "User",
-		Type:     types.SymbolTypeClass,
-		Location: types.Location{StartLine: 10, StartColumn: 1, EndLine: 10, EndColumn: 30},
+		Id:        "user-class",
+		Name:      "User",
+		Type:      types.SymbolTypeClass,
+		Location:  types.Location{StartLine: 10, StartColumn: 1, EndLine: 10, EndColumn: 30},
 		Signature: "class User { constructor(data: UserType) }",
-		Language: "typescript",
+		Language:  "typescript",
 	}
 
 	userInterface := &types.Symbol{
-		Id:       "user-interface",
-		Name:     "UserInterface",
-		Type:     types.SymbolTypeInterface,
-		Location: types.Location{StartLine: 5, StartColumn: 1, EndLine: 5, EndColumn: 30},
+		Id:        "user-interface",
+		Name:      "UserInterface",
+		Type:      types.SymbolTypeInterface,
+		Location:  types.Location{StartLine: 5, StartColumn: 1, EndLine: 5, EndColumn: 30},
 		Signature: "interface UserInterface { id: number; name: string }",
-		Language: "typescript",
+		Language:  "typescript",
 	}
 
 	userType := &types.Symbol{
-		Id:       "user-type",
-		Name:     "UserType",
-		Type:     types.SymbolTypeType,
-		Location: types.Location{StartLine: 3, StartColumn: 1, EndLine: 3, EndColumn: 30},
+		Id:        "user-type",
+		Name:      "UserType",
+		Type:      types.SymbolTypeType,
+		Location:  types.Location{StartLine: 3, StartColumn: 1, EndLine: 3, EndColumn: 30},
 		Signature: "type UserType = { id: number; name: string }",
-		Language: "typescript",
+		Language:  "typescript",
 	}
 
 	validateFunction := &types.Symbol{
-		Id:       "validate-function",
-		Name:     "validateUser",
-		Type:     types.SymbolTypeFunction,
-		Location: types.Location{StartLine: 5, StartColumn: 1, EndLine: 5, EndColumn: 30},
+		Id:        "validate-function",
+		Name:      "validateUser",
+		Type:      types.SymbolTypeFunction,
+		Location:  types.Location{StartLine: 5, StartColumn: 1, EndLine: 5, EndColumn: 30},
 		Signature: "function validateUser(user: UserType): boolean",
-		Language: "typescript",
+		Language:  "typescript",
 	}
 
 	// Add to graph
@@ -188,7 +188,7 @@ func TestAnalyzeSymbolUsageRelationships(t *testing.T) {
 
 func TestDetectCircularDependencies(t *testing.T) {
 	graph := createTestGraph()
-	
+
 	// Add a circular dependency: user.ts -> types.ts -> utils.ts -> user.ts
 	graph.Files["src/types.ts"].Imports = []*types.Import{
 		{
@@ -197,7 +197,7 @@ func TestDetectCircularDependencies(t *testing.T) {
 			IsDefault:  false,
 		},
 	}
-	
+
 	graph.Files["src/utils.ts"].Imports = []*types.Import{
 		{
 			Path:       "./user",
@@ -234,20 +234,20 @@ func TestIdentifyHotspotFiles(t *testing.T) {
 
 	// First analyze imports to create edges
 	analyzer.analyzeImportRelationships(metrics)
-	
+
 	// Then identify hotspots
 	analyzer.identifyHotspotFiles(metrics)
 
 	t.Logf("Identified %d hotspot files", len(metrics.HotspotFiles))
 	for _, hotspot := range metrics.HotspotFiles {
-		t.Logf("Hotspot: %s (imports: %d, references: %d, score: %.2f)", 
+		t.Logf("Hotspot: %s (imports: %d, references: %d, score: %.2f)",
 			hotspot.FilePath, hotspot.ImportCount, hotspot.ReferenceCount, hotspot.Score)
 	}
 }
 
 func TestFindIsolatedFiles(t *testing.T) {
 	graph := createTestGraph()
-	
+
 	// Add an isolated file
 	isolatedFile := &types.FileNode{
 		Path:         "src/isolated.ts",
@@ -262,16 +262,16 @@ func TestFindIsolatedFiles(t *testing.T) {
 		Symbols:      []types.SymbolId{"isolated-function"},
 		Imports:      []*types.Import{},
 	}
-	
+
 	isolatedSymbol := &types.Symbol{
-		Id:       "isolated-function",
-		Name:     "isolatedFunction",
-		Type:     types.SymbolTypeFunction,
-		Location: types.Location{StartLine: 3, StartColumn: 1, EndLine: 3, EndColumn: 30},
+		Id:        "isolated-function",
+		Name:      "isolatedFunction",
+		Type:      types.SymbolTypeFunction,
+		Location:  types.Location{StartLine: 3, StartColumn: 1, EndLine: 3, EndColumn: 30},
 		Signature: "function isolatedFunction(): void",
-		Language: "typescript",
+		Language:  "typescript",
 	}
-	
+
 	graph.Files["src/isolated.ts"] = isolatedFile
 	graph.Symbols["isolated-function"] = isolatedSymbol
 
@@ -283,7 +283,7 @@ func TestFindIsolatedFiles(t *testing.T) {
 
 	// First analyze imports to create edges
 	analyzer.analyzeImportRelationships(metrics)
-	
+
 	// Then find isolated files
 	analyzer.findIsolatedFiles(metrics)
 
@@ -386,7 +386,7 @@ func TestExtractTypeReferences(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := analyzer.extractTypeReferences(tt.signature)
-			
+
 			if len(result) != len(tt.expected) {
 				t.Errorf("extractTypeReferences() returned %d types, expected %d", len(result), len(tt.expected))
 				t.Logf("Result: %v", result)
@@ -464,7 +464,7 @@ func TestResolveImportPath(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result := analyzer.resolveImportPath(tt.importPath, tt.fromFile)
 			if result != tt.expected {
-				t.Errorf("resolveImportPath(%s, %s) = %s, expected %s", 
+				t.Errorf("resolveImportPath(%s, %s) = %s, expected %s",
 					tt.importPath, tt.fromFile, result, tt.expected)
 			}
 		})

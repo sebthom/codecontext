@@ -146,13 +146,13 @@ func (ad *ASTDiffer) compareSymbolsStructurally(oldFile, newFile *types.FileInfo
 					Line:   newSymbol.Location.StartLine,
 					Column: newSymbol.Location.StartColumn,
 				},
-				Impact: ad.assessStructuralImpact(ChangeTypeAdd, newSymbol),
+				Impact:  ad.assessStructuralImpact(ChangeTypeAdd, newSymbol),
 				Context: ad.buildStructuralContext(newSymbol, newFile),
 				Metadata: map[string]interface{}{
-					"diff_type":    "structural",
-					"symbol_kind":  newSymbol.Kind,
-					"line_count":   newSymbol.Location.EndLine - newSymbol.Location.StartLine + 1,
-					"complexity":   ad.calculateSymbolComplexity(newSymbol),
+					"diff_type":   "structural",
+					"symbol_kind": newSymbol.Kind,
+					"line_count":  newSymbol.Location.EndLine - newSymbol.Location.StartLine + 1,
+					"complexity":  ad.calculateSymbolComplexity(newSymbol),
 				},
 			}
 			changes = append(changes, change)
@@ -170,13 +170,13 @@ func (ad *ASTDiffer) compareSymbolsStructurally(oldFile, newFile *types.FileInfo
 					Line:   oldSymbol.Location.StartLine,
 					Column: oldSymbol.Location.StartColumn,
 				},
-				Impact: ad.assessStructuralImpact(ChangeTypeDelete, oldSymbol),
+				Impact:  ad.assessStructuralImpact(ChangeTypeDelete, oldSymbol),
 				Context: ad.buildStructuralContext(oldSymbol, oldFile),
 				Metadata: map[string]interface{}{
-					"diff_type":    "structural",
-					"symbol_kind":  oldSymbol.Kind,
-					"line_count":   oldSymbol.Location.EndLine - oldSymbol.Location.StartLine + 1,
-					"complexity":   ad.calculateSymbolComplexity(oldSymbol),
+					"diff_type":   "structural",
+					"symbol_kind": oldSymbol.Kind,
+					"line_count":  oldSymbol.Location.EndLine - oldSymbol.Location.StartLine + 1,
+					"complexity":  ad.calculateSymbolComplexity(oldSymbol),
 				},
 			}
 			changes = append(changes, change)
@@ -215,12 +215,12 @@ func (ad *ASTDiffer) compareSymbolStructure(oldSymbol, newSymbol *types.Symbol) 
 				Line:   newSymbol.Location.StartLine,
 				Column: newSymbol.Location.StartColumn,
 			},
-			Impact: ImpactLow,
+			Impact:  ImpactLow,
 			Context: ad.buildStructuralContext(newSymbol, nil),
 			Metadata: map[string]interface{}{
-				"diff_type":    "structural",
-				"change_type":  "location_change",
-				"line_delta":   newSymbol.Location.StartLine - oldSymbol.Location.StartLine,
+				"diff_type":   "structural",
+				"change_type": "location_change",
+				"line_delta":  newSymbol.Location.StartLine - oldSymbol.Location.StartLine,
 			},
 		}
 		changes = append(changes, change)
@@ -243,12 +243,12 @@ func (ad *ASTDiffer) compareSymbolStructure(oldSymbol, newSymbol *types.Symbol) 
 				Line:   newSymbol.Location.StartLine,
 				Column: newSymbol.Location.StartColumn,
 			},
-			Impact: impact,
+			Impact:  impact,
 			Context: ad.buildStructuralContext(newSymbol, nil),
 			Metadata: map[string]interface{}{
-				"diff_type":     "structural",
-				"change_type":   "size_change",
-				"size_delta":    sizeDelta,
+				"diff_type":       "structural",
+				"change_type":     "size_change",
+				"size_delta":      sizeDelta,
 				"relative_change": float64(sizeDelta) / float64(oldSize),
 			},
 		}
@@ -272,12 +272,12 @@ func (ad *ASTDiffer) compareSymbolStructure(oldSymbol, newSymbol *types.Symbol) 
 				Line:   newSymbol.Location.StartLine,
 				Column: newSymbol.Location.StartColumn,
 			},
-			Impact: impact,
+			Impact:  impact,
 			Context: ad.buildStructuralContext(newSymbol, nil),
 			Metadata: map[string]interface{}{
-				"diff_type":         "structural",
-				"change_type":       "complexity_change",
-				"complexity_delta":  complexityDelta,
+				"diff_type":        "structural",
+				"change_type":      "complexity_change",
+				"complexity_delta": complexityDelta,
 			},
 		}
 		changes = append(changes, change)
@@ -308,9 +308,9 @@ func (ad *ASTDiffer) compareImports(oldFile, newFile *types.FileInfo) []Change {
 					Tags:   []string{"import", "dependency"},
 				},
 				Metadata: map[string]interface{}{
-					"diff_type":    "structural",
-					"change_type":  "import_added",
-					"import_path":  newImport,
+					"diff_type":   "structural",
+					"change_type": "import_added",
+					"import_path": newImport,
 				},
 			}
 			changes = append(changes, change)
@@ -331,9 +331,9 @@ func (ad *ASTDiffer) compareImports(oldFile, newFile *types.FileInfo) []Change {
 					Tags:   []string{"import", "dependency"},
 				},
 				Metadata: map[string]interface{}{
-					"diff_type":    "structural",
-					"change_type":  "import_removed",
-					"import_path":  oldImport,
+					"diff_type":   "structural",
+					"change_type": "import_removed",
+					"import_path": oldImport,
 				},
 			}
 			changes = append(changes, change)
@@ -367,10 +367,10 @@ func (ad *ASTDiffer) compareFileStructure(oldFile, newFile *types.FileInfo) []Ch
 					Tags:   []string{"structure", symbolType},
 				},
 				Metadata: map[string]interface{}{
-					"diff_type":     "structural",
-					"change_type":   "symbol_count_change",
-					"symbol_type":   symbolType,
-					"count_delta":   delta,
+					"diff_type":   "structural",
+					"change_type": "symbol_count_change",
+					"symbol_type": symbolType,
+					"count_delta": delta,
 				},
 			}
 			changes = append(changes, change)
@@ -394,10 +394,10 @@ func (ad *ASTDiffer) convertASTChange(astChange ASTChange) Change {
 			Tags: []string{"ast", astChange.NodeType},
 		},
 		Metadata: map[string]interface{}{
-			"diff_type":     "ast",
-			"node_type":     astChange.NodeType,
-			"ast_depth":     astChange.Context.Depth,
-			"parent_type":   astChange.Context.ParentType,
+			"diff_type":   "ast",
+			"node_type":   astChange.NodeType,
+			"ast_depth":   astChange.Context.Depth,
+			"parent_type": astChange.Context.ParentType,
 		},
 	}
 }
@@ -414,11 +414,11 @@ func (ad *ASTDiffer) assessStructuralImpact(changeType ChangeType, symbol *types
 			return ImpactLow
 		}
 	}
-	
+
 	if symbol.Visibility == "protected" {
 		return ImpactMedium
 	}
-	
+
 	return ImpactLow
 }
 

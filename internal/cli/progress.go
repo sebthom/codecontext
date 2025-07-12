@@ -11,21 +11,21 @@ import (
 
 // ProgressBar represents a CLI progress bar
 type ProgressBar struct {
-	writer        io.Writer
-	total         int64
-	current       int64
-	width         int
-	description   string
-	showPercent   bool
-	showRate      bool
-	showETA       bool
-	startTime     time.Time
-	lastUpdate    time.Time
-	updateRate    time.Duration
-	mutex         sync.RWMutex
-	finished      bool
-	template      string
-	customSuffix  string
+	writer       io.Writer
+	total        int64
+	current      int64
+	width        int
+	description  string
+	showPercent  bool
+	showRate     bool
+	showETA      bool
+	startTime    time.Time
+	lastUpdate   time.Time
+	updateRate   time.Duration
+	mutex        sync.RWMutex
+	finished     bool
+	template     string
+	customSuffix string
 }
 
 // ProgressConfig holds configuration for progress bars
@@ -49,7 +49,7 @@ func NewProgressBar(total int64, description string, config *ProgressConfig) *Pr
 			UpdateRate:  100 * time.Millisecond,
 		}
 	}
-	
+
 	return &ProgressBar{
 		writer:      os.Stderr,
 		total:       total,
@@ -106,7 +106,7 @@ func (pb *ProgressBar) Add(amount int64) {
 		pb.current = pb.total
 	}
 	pb.mutex.Unlock()
-	
+
 	pb.maybeRender()
 }
 
@@ -118,7 +118,7 @@ func (pb *ProgressBar) SetCurrent(current int64) {
 		pb.current = pb.total
 	}
 	pb.mutex.Unlock()
-	
+
 	pb.maybeRender()
 }
 
@@ -128,7 +128,7 @@ func (pb *ProgressBar) Finish() {
 	pb.current = pb.total
 	pb.finished = true
 	pb.mutex.Unlock()
-	
+
 	pb.render()
 	fmt.Fprintln(pb.writer) // Add newline
 }
@@ -147,7 +147,7 @@ func (pb *ProgressBar) Reset() {
 func (pb *ProgressBar) GetProgress() (current, total int64, percent float64) {
 	pb.mutex.RLock()
 	defer pb.mutex.RUnlock()
-	
+
 	current = pb.current
 	total = pb.total
 	if total > 0 {
@@ -169,7 +169,7 @@ func (pb *ProgressBar) maybeRender() {
 	pb.mutex.RLock()
 	shouldUpdate := time.Since(pb.lastUpdate) >= pb.updateRate || pb.current == pb.total
 	pb.mutex.RUnlock()
-	
+
 	if shouldUpdate {
 		pb.render()
 	}
@@ -178,7 +178,7 @@ func (pb *ProgressBar) maybeRender() {
 func (pb *ProgressBar) render() {
 	pb.mutex.RLock()
 	defer pb.mutex.RUnlock()
-	
+
 	if pb.template != "" {
 		pb.renderCustom()
 	} else {
@@ -192,40 +192,40 @@ func (pb *ProgressBar) renderDefault() {
 	if pb.total > 0 {
 		percent = float64(pb.current) / float64(pb.total) * 100
 	}
-	
+
 	// Create progress bar
 	filled := int(float64(pb.width) * percent / 100)
 	if filled > pb.width {
 		filled = pb.width
 	}
-	
+
 	bar := strings.Repeat("█", filled) + strings.Repeat("░", pb.width-filled)
-	
+
 	// Build output string
 	output := fmt.Sprintf("\r%s [%s]", pb.description, bar)
-	
+
 	if pb.showPercent {
 		output += fmt.Sprintf(" %.1f%%", percent)
 	}
-	
+
 	output += fmt.Sprintf(" %d/%d", pb.current, pb.total)
-	
+
 	if pb.showRate {
 		rate := pb.calculateRate()
 		output += fmt.Sprintf(" (%.1f/s)", rate)
 	}
-	
+
 	if pb.showETA && !pb.finished {
 		eta := pb.calculateETA()
 		if eta > 0 {
 			output += fmt.Sprintf(" ETA: %s", formatDuration(eta))
 		}
 	}
-	
+
 	if pb.customSuffix != "" {
 		output += " " + pb.customSuffix
 	}
-	
+
 	fmt.Fprint(pb.writer, output)
 	pb.lastUpdate = time.Now()
 }
@@ -248,15 +248,15 @@ func (pb *ProgressBar) calculateETA() time.Duration {
 	if pb.current == 0 {
 		return 0
 	}
-	
+
 	elapsed := time.Since(pb.startTime)
 	rate := float64(pb.current) / elapsed.Seconds()
 	remaining := pb.total - pb.current
-	
+
 	if rate > 0 {
 		return time.Duration(float64(remaining)/rate) * time.Second
 	}
-	
+
 	return 0
 }
 
@@ -282,15 +282,15 @@ func NewMultiProgressBar() *MultiProgressBar {
 // AddBar adds a progress bar to the multi-progress display
 func (mpb *MultiProgressBar) AddBar(total int64, description string, config *ProgressConfig) *ProgressBar {
 	bar := NewProgressBar(total, description, config)
-	
+
 	mpb.mutex.Lock()
 	mpb.bars = append(mpb.bars, bar)
 	mpb.height++
 	mpb.mutex.Unlock()
-	
+
 	// Redirect bar output to prevent individual rendering
 	bar.SetWriter(io.Discard)
-	
+
 	return bar
 }
 
@@ -299,7 +299,7 @@ func (mpb *MultiProgressBar) Start() {
 	mpb.mutex.Lock()
 	mpb.active = true
 	mpb.mutex.Unlock()
-	
+
 	go mpb.renderLoop()
 }
 
@@ -308,7 +308,7 @@ func (mpb *MultiProgressBar) Stop() {
 	mpb.mutex.Lock()
 	mpb.active = false
 	mpb.mutex.Unlock()
-	
+
 	// Final render and cleanup
 	mpb.renderAll()
 	fmt.Fprintln(mpb.writer)
@@ -319,16 +319,16 @@ func (mpb *MultiProgressBar) Stop() {
 func (mpb *MultiProgressBar) renderLoop() {
 	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
-	
+
 	for {
 		mpb.mutex.RLock()
 		active := mpb.active
 		mpb.mutex.RUnlock()
-		
+
 		if !active {
 			break
 		}
-		
+
 		select {
 		case <-ticker.C:
 			mpb.renderAll()
@@ -339,14 +339,14 @@ func (mpb *MultiProgressBar) renderLoop() {
 func (mpb *MultiProgressBar) renderAll() {
 	mpb.mutex.RLock()
 	defer mpb.mutex.RUnlock()
-	
+
 	// Clear previous lines
 	if mpb.lastLines > 0 {
 		for i := 0; i < mpb.lastLines; i++ {
 			fmt.Fprint(mpb.writer, "\033[A\033[K") // Move up and clear line
 		}
 	}
-	
+
 	lines := 0
 	for _, bar := range mpb.bars {
 		if !bar.IsFinished() || bar.IsFinished() {
@@ -356,33 +356,33 @@ func (mpb *MultiProgressBar) renderAll() {
 			if bar.total > 0 {
 				percent = float64(bar.current) / float64(bar.total) * 100
 			}
-			
+
 			filled := int(float64(bar.width) * percent / 100)
 			if filled > bar.width {
 				filled = bar.width
 			}
-			
+
 			barStr := strings.Repeat("█", filled) + strings.Repeat("░", bar.width-filled)
-			
+
 			output := fmt.Sprintf("%s [%s] %.1f%% %d/%d",
 				bar.description, barStr, percent, bar.current, bar.total)
-			
+
 			if bar.showRate {
 				rate := bar.calculateRate()
 				output += fmt.Sprintf(" (%.1f/s)", rate)
 			}
-			
+
 			if bar.customSuffix != "" {
 				output += " " + bar.customSuffix
 			}
-			
+
 			bar.mutex.RUnlock()
-			
+
 			fmt.Fprintln(mpb.writer, output)
 			lines++
 		}
 	}
-	
+
 	mpb.lastLines = lines
 }
 
@@ -414,7 +414,7 @@ func (s *Spinner) Start() {
 	s.mutex.Lock()
 	s.active = true
 	s.mutex.Unlock()
-	
+
 	go s.spin()
 }
 
@@ -426,7 +426,7 @@ func (s *Spinner) Stop() {
 		s.stopChan <- true
 	}
 	s.mutex.Unlock()
-	
+
 	// Clear the line
 	fmt.Fprint(s.writer, "\r\033[K")
 }
@@ -443,7 +443,7 @@ func (s *Spinner) SetMessage(message string) {
 func (s *Spinner) spin() {
 	ticker := time.NewTicker(s.delay)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-s.stopChan:
@@ -454,13 +454,13 @@ func (s *Spinner) spin() {
 				s.mutex.RUnlock()
 				return
 			}
-			
+
 			char := s.chars[s.currentChar]
 			message := s.message
 			s.mutex.RUnlock()
-			
+
 			fmt.Fprintf(s.writer, "\r%c %s", char, message)
-			
+
 			s.mutex.Lock()
 			s.currentChar = (s.currentChar + 1) % len(s.chars)
 			s.mutex.Unlock()
@@ -475,7 +475,12 @@ func formatDuration(d time.Duration) string {
 	if d < time.Minute {
 		return fmt.Sprintf("%.0fs", d.Seconds())
 	} else if d < time.Hour {
-		return fmt.Sprintf("%.0fm%.0fs", d.Minutes(), d.Seconds()-60*d.Minutes())
+		minutes := int(d.Minutes())
+		seconds := int(d.Seconds()) - 60*minutes
+		if seconds == 0 {
+			return fmt.Sprintf("%dm", minutes)
+		}
+		return fmt.Sprintf("%dm%ds", minutes, seconds)
 	} else {
 		hours := int(d.Hours())
 		minutes := int(d.Minutes()) - 60*hours
@@ -502,10 +507,10 @@ func NewProgressManager() *ProgressManager {
 func (pm *ProgressManager) StartFileScanning(totalFiles int64) *ProgressBar {
 	pm.mutex.Lock()
 	defer pm.mutex.Unlock()
-	
+
 	pm.mode = "scanning"
 	pm.multiBar.Start()
-	
+
 	config := &ProgressConfig{
 		Width:       40,
 		ShowPercent: true,
@@ -513,7 +518,7 @@ func (pm *ProgressManager) StartFileScanning(totalFiles int64) *ProgressBar {
 		ShowETA:     true,
 		UpdateRate:  200 * time.Millisecond,
 	}
-	
+
 	return pm.multiBar.AddBar(totalFiles, "Scanning files", config)
 }
 
@@ -521,7 +526,7 @@ func (pm *ProgressManager) StartFileScanning(totalFiles int64) *ProgressBar {
 func (pm *ProgressManager) StartParsing(totalFiles int64) *ProgressBar {
 	pm.mutex.Lock()
 	defer pm.mutex.Unlock()
-	
+
 	config := &ProgressConfig{
 		Width:       40,
 		ShowPercent: true,
@@ -529,7 +534,7 @@ func (pm *ProgressManager) StartParsing(totalFiles int64) *ProgressBar {
 		ShowETA:     true,
 		UpdateRate:  200 * time.Millisecond,
 	}
-	
+
 	return pm.multiBar.AddBar(totalFiles, "Parsing files", config)
 }
 
@@ -537,7 +542,7 @@ func (pm *ProgressManager) StartParsing(totalFiles int64) *ProgressBar {
 func (pm *ProgressManager) StartAnalyzing(totalSymbols int64) *ProgressBar {
 	pm.mutex.Lock()
 	defer pm.mutex.Unlock()
-	
+
 	config := &ProgressConfig{
 		Width:       40,
 		ShowPercent: true,
@@ -545,7 +550,7 @@ func (pm *ProgressManager) StartAnalyzing(totalSymbols int64) *ProgressBar {
 		ShowETA:     true,
 		UpdateRate:  200 * time.Millisecond,
 	}
-	
+
 	return pm.multiBar.AddBar(totalSymbols, "Analyzing symbols", config)
 }
 
@@ -553,7 +558,7 @@ func (pm *ProgressManager) StartAnalyzing(totalSymbols int64) *ProgressBar {
 func (pm *ProgressManager) StartIndeterminate(message string) {
 	pm.mutex.Lock()
 	defer pm.mutex.Unlock()
-	
+
 	pm.mode = "indeterminate"
 	pm.spinner = NewSpinner(message)
 	pm.spinner.Start()
@@ -564,7 +569,7 @@ func (pm *ProgressManager) UpdateIndeterminate(message string) {
 	pm.mutex.RLock()
 	spinner := pm.spinner
 	pm.mutex.RUnlock()
-	
+
 	if spinner != nil {
 		spinner.SetMessage(message)
 	}
@@ -574,11 +579,11 @@ func (pm *ProgressManager) UpdateIndeterminate(message string) {
 func (pm *ProgressManager) Stop() {
 	pm.mutex.Lock()
 	defer pm.mutex.Unlock()
-	
+
 	if pm.multiBar != nil {
 		pm.multiBar.Stop()
 	}
-	
+
 	if pm.spinner != nil {
 		pm.spinner.Stop()
 	}

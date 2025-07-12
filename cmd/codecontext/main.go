@@ -16,7 +16,7 @@ var (
 func main() {
 	// Set version information for CLI
 	cli.SetVersion(version, buildDate, gitCommit)
-	
+
 	if err := cli.Execute(); err != nil {
 		os.Exit(1)
 	}

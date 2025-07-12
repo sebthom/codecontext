@@ -27,19 +27,19 @@ func init() {
 func initializeProject() error {
 	configDir := ".codecontext"
 	configFile := filepath.Join(configDir, "config.yaml")
-	
+
 	// Check if already initialized
 	if _, err := os.Stat(configFile); err == nil {
 		if !viper.GetBool("force") {
 			return fmt.Errorf("CodeContext project already initialized. Use --force to overwrite")
 		}
 	}
-	
+
 	// Create config directory
 	if err := os.MkdirAll(configDir, 0755); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
-	
+
 	// Create default configuration
 	defaultConfig := `# CodeContext Configuration
 version: "2.0"
@@ -126,11 +126,11 @@ exclude_patterns:
 	if err := os.WriteFile(configFile, []byte(defaultConfig), 0644); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
-	
+
 	// Create gitignore entry
 	gitignoreEntry := ".codecontext/cache/\n.codecontext/logs/\n"
 	gitignoreFile := ".gitignore"
-	
+
 	if _, err := os.Stat(gitignoreFile); err == nil {
 		// Append to existing gitignore
 		f, err := os.OpenFile(gitignoreFile, os.O_APPEND|os.O_WRONLY, 0644)
@@ -138,7 +138,7 @@ exclude_patterns:
 			return fmt.Errorf("failed to open .gitignore: %w", err)
 		}
 		defer f.Close()
-		
+
 		if _, err := f.WriteString(gitignoreEntry); err != nil {
 			return fmt.Errorf("failed to write to .gitignore: %w", err)
 		}
@@ -148,12 +148,12 @@ exclude_patterns:
 			return fmt.Errorf("failed to create .gitignore: %w", err)
 		}
 	}
-	
+
 	fmt.Println("✅ CodeContext project initialized successfully!")
 	fmt.Printf("   Config file: %s\n", configFile)
 	fmt.Println("   Next steps:")
 	fmt.Println("   1. Run 'codecontext generate' to create initial context map")
 	fmt.Println("   2. Edit config.yaml to customize settings")
-	
+
 	return nil
 }

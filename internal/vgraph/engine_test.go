@@ -34,7 +34,7 @@ func TestNewVirtualGraphEngine(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			vge := NewVirtualGraphEngine(tt.config)
-			
+
 			if vge == nil {
 				t.Fatal("NewVirtualGraphEngine returned nil")
 			}
@@ -77,10 +77,10 @@ func TestNewVirtualGraphEngine(t *testing.T) {
 
 func TestVirtualGraphEngine_Initialize(t *testing.T) {
 	vge := NewVirtualGraphEngine(nil)
-	
+
 	// Create a test graph
 	testGraph := createTestCodeGraph()
-	
+
 	err := vge.Initialize(testGraph)
 	if err != nil {
 		t.Fatalf("Initialize failed: %v", err)
@@ -100,12 +100,12 @@ func TestVirtualGraphEngine_Initialize(t *testing.T) {
 
 	// Verify they have the same number of elements but are different instances
 	if len(actualGraph.Files) != len(shadowGraph.Files) {
-		t.Errorf("Files count mismatch: actual=%d, shadow=%d", 
+		t.Errorf("Files count mismatch: actual=%d, shadow=%d",
 			len(actualGraph.Files), len(shadowGraph.Files))
 	}
 
 	if len(actualGraph.Symbols) != len(shadowGraph.Symbols) {
-		t.Errorf("Symbols count mismatch: actual=%d, shadow=%d", 
+		t.Errorf("Symbols count mismatch: actual=%d, shadow=%d",
 			len(actualGraph.Symbols), len(shadowGraph.Symbols))
 	}
 }
@@ -236,7 +236,7 @@ func TestVirtualGraphEngine_ProcessPendingChanges(t *testing.T) {
 
 func TestVirtualGraphEngine_GetMetrics(t *testing.T) {
 	vge := NewVirtualGraphEngine(nil)
-	
+
 	metrics := vge.GetMetrics()
 	if metrics == nil {
 		t.Fatal("GetMetrics should not return nil")
@@ -259,7 +259,7 @@ func TestVirtualGraphEngine_GetMetrics(t *testing.T) {
 func TestVirtualGraphEngine_Reset(t *testing.T) {
 	vge := NewVirtualGraphEngine(nil)
 	testGraph := createTestCodeGraph()
-	
+
 	// Initialize with test data
 	err := vge.Initialize(testGraph)
 	if err != nil {
@@ -273,7 +273,7 @@ func TestVirtualGraphEngine_Reset(t *testing.T) {
 		FilePath: "test.ts",
 		Changes:  []Change{},
 	}
-	
+
 	err = vge.QueueChange(change)
 	if err != nil {
 		t.Fatalf("QueueChange failed: %v", err)
@@ -304,7 +304,7 @@ func TestVirtualGraphEngine_Reset(t *testing.T) {
 
 func TestDefaultVGEConfig(t *testing.T) {
 	config := DefaultVGEConfig()
-	
+
 	if config == nil {
 		t.Fatal("DefaultVGEConfig should not return nil")
 	}
@@ -510,7 +510,7 @@ func BenchmarkVirtualGraphEngine_ProcessPendingChanges(b *testing.B) {
 
 	ctx := context.Background()
 	b.ResetTimer()
-	
+
 	for i := 0; i < b.N; i++ {
 		vge.ProcessPendingChanges(ctx)
 	}

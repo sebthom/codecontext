@@ -33,14 +33,14 @@ func NewASTCache() *ASTCache {
 func (c *ASTCache) Get(fileId string, version ...string) (*types.VersionedAST, error) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	
+
 	var key string
 	if len(version) > 0 {
 		key = fmt.Sprintf("%s:%s", fileId, version[0])
 	} else {
 		key = fileId
 	}
-	
+
 	// Check if entry exists and is not expired
 	if ast, exists := c.astCache[key]; exists {
 		if timestamp, ok := c.timestamps[key]; ok {
@@ -53,7 +53,7 @@ func (c *ASTCache) Get(fileId string, version ...string) (*types.VersionedAST, e
 			}
 		}
 	}
-	
+
 	return nil, fmt.Errorf("AST not found in cache: %s", key)
 }
 
@@ -61,16 +61,16 @@ func (c *ASTCache) Get(fileId string, version ...string) (*types.VersionedAST, e
 func (c *ASTCache) Set(fileId string, ast *types.VersionedAST) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	
+
 	// Check if cache is full
 	if len(c.astCache) >= c.maxSize {
 		c.evictOldest()
 	}
-	
+
 	key := fmt.Sprintf("%s:%s", fileId, ast.Version)
 	c.astCache[key] = ast
 	c.timestamps[key] = time.Now()
-	
+
 	return nil
 }
 
@@ -78,11 +78,11 @@ func (c *ASTCache) Set(fileId string, ast *types.VersionedAST) error {
 func (c *ASTCache) GetDiffCache(fileId string) ([]*types.ASTDiff, error) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	
+
 	if diffs, exists := c.diffCache[fileId]; exists {
 		return diffs, nil
 	}
-	
+
 	return nil, fmt.Errorf("diff cache not found for file: %s", fileId)
 }
 
@@ -90,7 +90,7 @@ func (c *ASTCache) GetDiffCache(fileId string) ([]*types.ASTDiff, error) {
 func (c *ASTCache) SetDiffCache(fileId string, diffs []*types.ASTDiff) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	
+
 	c.diffCache[fileId] = diffs
 	return nil
 }
@@ -99,7 +99,7 @@ func (c *ASTCache) SetDiffCache(fileId string, diffs []*types.ASTDiff) error {
 func (c *ASTCache) Invalidate(fileId string) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	
+
 	// Remove all versions of this file
 	for key := range c.astCache {
 		if key == fileId || (len(key) > len(fileId) && key[:len(fileId)] == fileId && key[len(fileId)] == ':') {
@@ -107,10 +107,10 @@ func (c *ASTCache) Invalidate(fileId string) error {
 			delete(c.timestamps, key)
 		}
 	}
-	
+
 	// Remove diff cache
 	delete(c.diffCache, fileId)
-	
+
 	return nil
 }
 
@@ -118,11 +118,11 @@ func (c *ASTCache) Invalidate(fileId string) error {
 func (c *ASTCache) Clear() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	
+
 	c.astCache = make(map[string]*types.VersionedAST)
 	c.diffCache = make(map[string][]*types.ASTDiff)
 	c.timestamps = make(map[string]time.Time)
-	
+
 	return nil
 }
 
@@ -130,7 +130,7 @@ func (c *ASTCache) Clear() error {
 func (c *ASTCache) Size() int {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	
+
 	return len(c.astCache)
 }
 
@@ -138,7 +138,7 @@ func (c *ASTCache) Size() int {
 func (c *ASTCache) Stats() map[string]interface{} {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	
+
 	return map[string]interface{}{
 		"ast_entries":  len(c.astCache),
 		"diff_entries": len(c.diffCache),
@@ -151,14 +151,14 @@ func (c *ASTCache) Stats() map[string]interface{} {
 func (c *ASTCache) evictOldest() {
 	var oldestKey string
 	var oldestTime time.Time
-	
+
 	for key, timestamp := range c.timestamps {
 		if oldestKey == "" || timestamp.Before(oldestTime) {
 			oldestKey = key
 			oldestTime = timestamp
 		}
 	}
-	
+
 	if oldestKey != "" {
 		delete(c.astCache, oldestKey)
 		delete(c.timestamps, oldestKey)
@@ -169,9 +169,9 @@ func (c *ASTCache) evictOldest() {
 func (c *ASTCache) SetMaxSize(size int) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	
+
 	c.maxSize = size
-	
+
 	// Evict entries if current size exceeds new max size
 	for len(c.astCache) > c.maxSize {
 		c.evictOldest()
@@ -182,6 +182,6 @@ func (c *ASTCache) SetMaxSize(size int) {
 func (c *ASTCache) SetTTL(ttl time.Duration) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	
+
 	c.ttl = ttl
 }

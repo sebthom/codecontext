@@ -13,7 +13,7 @@ import (
 
 func TestNewIncrementalAnalyzer(t *testing.T) {
 	tempDir := t.TempDir()
-	
+
 	tests := []struct {
 		name   string
 		config *IncrementalConfig
@@ -79,7 +79,7 @@ func TestNewIncrementalAnalyzer(t *testing.T) {
 
 func TestDefaultIncrementalConfig(t *testing.T) {
 	config := DefaultIncrementalConfig()
-	
+
 	if config == nil {
 		t.Fatal("DefaultIncrementalConfig() returned nil")
 	}
@@ -129,9 +129,23 @@ func TestIncrementalAnalyzer_Initialize(t *testing.T) {
 		t.Fatalf("NewIncrementalAnalyzer() error = %v", err)
 	}
 
-	// Create test graph
-	testGraph := createTestCodeGraph()
-	
+	// Create actual test files that exist on filesystem
+	testFile1 := filepath.Join(tempDir, "test1.ts")
+	testFile2 := filepath.Join(tempDir, "test2.ts")
+
+	err = os.WriteFile(testFile1, []byte("// Test file 1"), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create test file: %v", err)
+	}
+
+	err = os.WriteFile(testFile2, []byte("// Test file 2"), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create test file: %v", err)
+	}
+
+	// Create test graph with actual file paths
+	testGraph := createTestCodeGraphWithFiles(testFile1, testFile2)
+
 	err = analyzer.Initialize(testGraph)
 	if err != nil {
 		t.Fatalf("Initialize() error = %v", err)
@@ -151,16 +165,16 @@ func TestIncrementalAnalyzer_Initialize(t *testing.T) {
 
 func TestIncrementalAnalyzer_DetectChanges(t *testing.T) {
 	tempDir := t.TempDir()
-	
+
 	// Create test files
 	testFile1 := filepath.Join(tempDir, "test1.ts")
 	testFile2 := filepath.Join(tempDir, "test2.ts")
-	
+
 	err := os.WriteFile(testFile1, []byte("// Test file 1"), 0644)
 	if err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
-	
+
 	err = os.WriteFile(testFile2, []byte("// Test file 2"), 0644)
 	if err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
@@ -233,7 +247,7 @@ func TestIncrementalAnalyzer_DetectChanges(t *testing.T) {
 
 func TestIncrementalAnalyzer_AnalyzeChanges(t *testing.T) {
 	tempDir := t.TempDir()
-	
+
 	// Create test TypeScript file
 	testFile := filepath.Join(tempDir, "test.ts")
 	testContent := `
@@ -252,7 +266,7 @@ export class UserService {
     }
 }
 `
-	
+
 	err := os.WriteFile(testFile, []byte(testContent), 0644)
 	if err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
@@ -408,7 +422,7 @@ func TestIncrementalAnalyzer_DisabledVGE(t *testing.T) {
 	}
 
 	testGraph := createTestCodeGraph()
-	
+
 	err = analyzer.Initialize(testGraph)
 	if err == nil {
 		t.Error("Expected error when VGE is disabled")
@@ -417,7 +431,7 @@ func TestIncrementalAnalyzer_DisabledVGE(t *testing.T) {
 
 func TestImpactSummary(t *testing.T) {
 	analyzer := &IncrementalAnalyzer{}
-	
+
 	changes := []FileChange{
 		{Type: ChangeTypeAdded, Path: "new.ts"},
 		{Type: ChangeTypeModified, Path: "mod.ts"},
@@ -425,7 +439,7 @@ func TestImpactSummary(t *testing.T) {
 	}
 
 	summary := analyzer.computeImpactSummary(changes)
-	
+
 	if summary == nil {
 		t.Fatal("computeImpactSummary() returned nil")
 	}
@@ -455,7 +469,7 @@ func TestImpactSummary(t *testing.T) {
 
 func BenchmarkIncrementalAnalyzer_DetectChanges(b *testing.B) {
 	tempDir := b.TempDir()
-	
+
 	// Create many test files
 	files := make([]string, 100)
 	for i := 0; i < 100; i++ {
@@ -481,7 +495,7 @@ func BenchmarkIncrementalAnalyzer_DetectChanges(b *testing.B) {
 func BenchmarkIncrementalAnalyzer_ProcessFileChange(b *testing.B) {
 	tempDir := b.TempDir()
 	testFile := filepath.Join(tempDir, "benchmark.ts")
-	
+
 	content := `
 export interface User {
     id: number;
@@ -510,7 +524,7 @@ export class UserService {
     }
 }
 `
-	
+
 	err := os.WriteFile(testFile, []byte(content), 0644)
 	if err != nil {
 		b.Fatalf("Failed to create test file: %v", err)
@@ -541,7 +555,7 @@ export class UserService {
 
 	ctx := context.Background()
 	b.ResetTimer()
-	
+
 	for i := 0; i < b.N; i++ {
 		analyzer.processFileChange(ctx, change, result)
 	}
@@ -622,6 +636,43 @@ func createTestCodeGraph() *types.CodeGraph {
 		},
 		Signature: "const TestVariable: string",
 		Language:  "typescript",
+	}
+
+	return graph
+}
+
+// createTestCodeGraphWithFiles creates a test graph with actual file paths
+func createTestCodeGraphWithFiles(file1, file2 string) *types.CodeGraph {
+	graph := &types.CodeGraph{
+		Nodes:   make(map[types.NodeId]*types.GraphNode),
+		Edges:   make(map[types.EdgeId]*types.GraphEdge),
+		Files:   make(map[string]*types.FileNode),
+		Symbols: make(map[types.SymbolId]*types.Symbol),
+		Metadata: &types.GraphMetadata{
+			TotalFiles:   2,
+			TotalSymbols: 3,
+			Generated:    time.Now(),
+			Version:      "test",
+		},
+	}
+
+	// Add test files with actual paths
+	graph.Files[file1] = &types.FileNode{
+		Path:        file1,
+		Language:    "typescript",
+		Size:        500,
+		Lines:       25,
+		SymbolCount: 2,
+		ImportCount: 1,
+	}
+
+	graph.Files[file2] = &types.FileNode{
+		Path:        file2,
+		Language:    "typescript",
+		Size:        800,
+		Lines:       40,
+		SymbolCount: 1,
+		ImportCount: 2,
 	}
 
 	return graph

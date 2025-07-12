@@ -11,10 +11,10 @@ import (
 
 // DependencyTracker tracks changes in import dependencies and file relationships
 type DependencyTracker struct {
-	config             *Config
-	languageDetectors  map[string]DependencyDetector
-	importPatterns     map[string]*regexp.Regexp
-	dependencyCache    map[string][]Dependency
+	config            *Config
+	languageDetectors map[string]DependencyDetector
+	importPatterns    map[string]*regexp.Regexp
+	dependencyCache   map[string][]Dependency
 }
 
 // DependencyDetector provides language-specific dependency detection
@@ -28,29 +28,29 @@ type DependencyDetector interface {
 
 // Dependency represents a dependency relationship
 type Dependency struct {
-	Type         DependencyType `json:"type"`
-	Source       string         `json:"source"`        // File that has the dependency
-	Target       string         `json:"target"`        // Dependency target (file, module, package)
-	ImportPath   string         `json:"import_path"`   // Raw import path
-	Alias        string         `json:"alias"`         // Import alias if any
-	IsExternal   bool           `json:"is_external"`   // External vs internal dependency
-	IsRelative   bool           `json:"is_relative"`   // Relative vs absolute import
-	Line         int            `json:"line"`          // Line number of import
-	Kind         ImportKind     `json:"kind"`          // Type of import
-	Metadata     map[string]interface{} `json:"metadata"`
+	Type       DependencyType         `json:"type"`
+	Source     string                 `json:"source"`      // File that has the dependency
+	Target     string                 `json:"target"`      // Dependency target (file, module, package)
+	ImportPath string                 `json:"import_path"` // Raw import path
+	Alias      string                 `json:"alias"`       // Import alias if any
+	IsExternal bool                   `json:"is_external"` // External vs internal dependency
+	IsRelative bool                   `json:"is_relative"` // Relative vs absolute import
+	Line       int                    `json:"line"`        // Line number of import
+	Kind       ImportKind             `json:"kind"`        // Type of import
+	Metadata   map[string]interface{} `json:"metadata"`
 }
 
 // Import represents an import statement
 type Import struct {
-	Path         string            `json:"path"`
-	Alias        string            `json:"alias"`
-	Symbols      []string          `json:"symbols"`      // Named imports
-	IsDefault    bool              `json:"is_default"`
-	IsNamespace  bool              `json:"is_namespace"` // Import * as name
-	IsRelative   bool              `json:"is_relative"`
-	Line         int               `json:"line"`
-	Column       int               `json:"column"`
-	Metadata     map[string]interface{} `json:"metadata"`
+	Path        string                 `json:"path"`
+	Alias       string                 `json:"alias"`
+	Symbols     []string               `json:"symbols"` // Named imports
+	IsDefault   bool                   `json:"is_default"`
+	IsNamespace bool                   `json:"is_namespace"` // Import * as name
+	IsRelative  bool                   `json:"is_relative"`
+	Line        int                    `json:"line"`
+	Column      int                    `json:"column"`
+	Metadata    map[string]interface{} `json:"metadata"`
 }
 
 // DependencyChange represents a change in dependencies
@@ -81,11 +81,11 @@ const (
 type ImportKind string
 
 const (
-	ImportKindDefault   ImportKind = "default"
-	ImportKindNamed     ImportKind = "named"
-	ImportKindNamespace ImportKind = "namespace"
+	ImportKindDefault    ImportKind = "default"
+	ImportKindNamed      ImportKind = "named"
+	ImportKindNamespace  ImportKind = "namespace"
 	ImportKindSideEffect ImportKind = "side_effect"
-	ImportKindDynamic   ImportKind = "dynamic"
+	ImportKindDynamic    ImportKind = "dynamic"
 )
 
 // DependencyChangeType represents types of dependency changes
@@ -119,7 +119,7 @@ func NewDependencyTracker(config *Config) *DependencyTracker {
 
 	// Register language-specific detectors
 	tracker.registerLanguageDetectors()
-	
+
 	// Initialize import patterns
 	tracker.initializeImportPatterns()
 
@@ -372,10 +372,10 @@ func (dt *DependencyTracker) analyzeCircularDependencies(deps []Dependency, file
 				Tags: []string{"circular_dependency", "risk"},
 			},
 			Metadata: map[string]interface{}{
-				"change_type":      "circular_dependency_risk",
-				"cycle_length":     len(cycle),
-				"affected_files":   cycle,
-				"risk_level":       "high",
+				"change_type":    "circular_dependency_risk",
+				"cycle_length":   len(cycle),
+				"affected_files": cycle,
+				"risk_level":     "high",
 			},
 		}
 		changes = append(changes, change)
@@ -402,12 +402,12 @@ func (dt *DependencyTracker) convertDependencyChange(depChange DependencyChange,
 			Tags:   []string{"dependency", string(depChange.Dependency.Type)},
 		},
 		Metadata: map[string]interface{}{
-			"dependency_type":   string(depChange.Dependency.Type),
-			"is_external":       depChange.Dependency.IsExternal,
-			"is_relative":       depChange.Dependency.IsRelative,
-			"import_kind":       string(depChange.Dependency.Kind),
-			"change_reason":     depChange.Reason,
-			"suggestions":       depChange.Suggestions,
+			"dependency_type": string(depChange.Dependency.Type),
+			"is_external":     depChange.Dependency.IsExternal,
+			"is_relative":     depChange.Dependency.IsRelative,
+			"import_kind":     string(depChange.Dependency.Kind),
+			"change_reason":   depChange.Reason,
+			"suggestions":     depChange.Suggestions,
 		},
 	}
 }
@@ -564,13 +564,13 @@ func (dt *DependencyTracker) slicesEqual(a, b []string) bool {
 
 func (dt *DependencyTracker) buildDependencyGraph(deps []Dependency, file *types.FileInfo) map[string][]string {
 	graph := make(map[string][]string)
-	
+
 	for _, dep := range deps {
 		if !dep.IsExternal {
 			graph[file.Path] = append(graph[file.Path], dep.Target)
 		}
 	}
-	
+
 	return graph
 }
 
@@ -578,7 +578,7 @@ func (dt *DependencyTracker) detectCycles(graph map[string][]string) [][]string 
 	var cycles [][]string
 	visited := make(map[string]bool)
 	recStack := make(map[string]bool)
-	
+
 	for node := range graph {
 		if !visited[node] {
 			if cycle := dt.dfsDetectCycle(graph, node, visited, recStack, []string{}); cycle != nil {
@@ -586,7 +586,7 @@ func (dt *DependencyTracker) detectCycles(graph map[string][]string) [][]string 
 			}
 		}
 	}
-	
+
 	return cycles
 }
 
@@ -594,7 +594,7 @@ func (dt *DependencyTracker) dfsDetectCycle(graph map[string][]string, node stri
 	visited[node] = true
 	recStack[node] = true
 	path = append(path, node)
-	
+
 	for _, neighbor := range graph[node] {
 		if !visited[neighbor] {
 			if cycle := dt.dfsDetectCycle(graph, neighbor, visited, recStack, path); cycle != nil {
@@ -614,7 +614,7 @@ func (dt *DependencyTracker) dfsDetectCycle(graph map[string][]string, node stri
 			}
 		}
 	}
-	
+
 	recStack[node] = false
 	return nil
 }

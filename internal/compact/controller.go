@@ -18,84 +18,84 @@ type CompactController struct {
 
 // CompactConfig holds configuration for the compact controller
 type CompactConfig struct {
-	EnableCompaction      bool                   `json:"enable_compaction"`
-	DefaultStrategy       string                 `json:"default_strategy"`
-	MaxContextSize        int                    `json:"max_context_size"`
-	CompressionRatio      float64                `json:"compression_ratio"`
-	PriorityThreshold     float64                `json:"priority_threshold"`
-	CacheEnabled          bool                   `json:"cache_enabled"`
-	CacheSize             int                    `json:"cache_size"`
-	MetricsEnabled        bool                   `json:"metrics_enabled"`
-	StrategyConfig        map[string]interface{} `json:"strategy_config"`
-	AdaptiveEnabled       bool                   `json:"adaptive_enabled"`
-	AdaptiveThreshold     float64                `json:"adaptive_threshold"`
-	BatchSize             int                    `json:"batch_size"`
-	ParallelProcessing    bool                   `json:"parallel_processing"`
+	EnableCompaction   bool                   `json:"enable_compaction"`
+	DefaultStrategy    string                 `json:"default_strategy"`
+	MaxContextSize     int                    `json:"max_context_size"`
+	CompressionRatio   float64                `json:"compression_ratio"`
+	PriorityThreshold  float64                `json:"priority_threshold"`
+	CacheEnabled       bool                   `json:"cache_enabled"`
+	CacheSize          int                    `json:"cache_size"`
+	MetricsEnabled     bool                   `json:"metrics_enabled"`
+	StrategyConfig     map[string]interface{} `json:"strategy_config"`
+	AdaptiveEnabled    bool                   `json:"adaptive_enabled"`
+	AdaptiveThreshold  float64                `json:"adaptive_threshold"`
+	BatchSize          int                    `json:"batch_size"`
+	ParallelProcessing bool                   `json:"parallel_processing"`
 }
 
 // CompactMetrics tracks compaction performance
 type CompactMetrics struct {
-	TotalCompactions    int64         `json:"total_compactions"`
-	CompressionRatio    float64       `json:"compression_ratio"`
-	AverageTime         time.Duration `json:"average_time"`
-	LastCompaction      time.Time     `json:"last_compaction"`
-	StrategiesUsed      map[string]int64 `json:"strategies_used"`
-	CacheHitRate        float64       `json:"cache_hit_rate"`
-	MemorySaved         int64         `json:"memory_saved"`
-	ContextSizeReduced  int64         `json:"context_size_reduced"`
-	AdaptiveTriggers    int64         `json:"adaptive_triggers"`
+	TotalCompactions   int64            `json:"total_compactions"`
+	CompressionRatio   float64          `json:"compression_ratio"`
+	AverageTime        time.Duration    `json:"average_time"`
+	LastCompaction     time.Time        `json:"last_compaction"`
+	StrategiesUsed     map[string]int64 `json:"strategies_used"`
+	CacheHitRate       float64          `json:"cache_hit_rate"`
+	MemorySaved        int64            `json:"memory_saved"`
+	ContextSizeReduced int64            `json:"context_size_reduced"`
+	AdaptiveTriggers   int64            `json:"adaptive_triggers"`
 }
 
 // CompactRequest represents a request for context optimization
 type CompactRequest struct {
-	Graph          *types.CodeGraph      `json:"graph"`
-	Strategy       string                `json:"strategy"`
-	MaxSize        int                   `json:"max_size"`
-	Priorities     map[string]float64    `json:"priorities"`
-	Requirements   *CompactRequirements  `json:"requirements"`
-	Context        map[string]interface{} `json:"context"`
+	Graph        *types.CodeGraph       `json:"graph"`
+	Strategy     string                 `json:"strategy"`
+	MaxSize      int                    `json:"max_size"`
+	Priorities   map[string]float64     `json:"priorities"`
+	Requirements *CompactRequirements   `json:"requirements"`
+	Context      map[string]interface{} `json:"context"`
 }
 
 // CompactRequirements specifies what must be preserved during compaction
 type CompactRequirements struct {
-	PreserveFiles    []string          `json:"preserve_files"`
-	PreserveSymbols  []types.SymbolId  `json:"preserve_symbols"`
-	MinDepth         int               `json:"min_depth"`
-	RequiredTypes    []types.SymbolType `json:"required_types"`
-	LanguageFilter   []string          `json:"language_filter"`
-	PreservePaths    []string          `json:"preserve_paths"`
+	PreserveFiles   []string           `json:"preserve_files"`
+	PreserveSymbols []types.SymbolId   `json:"preserve_symbols"`
+	MinDepth        int                `json:"min_depth"`
+	RequiredTypes   []types.SymbolType `json:"required_types"`
+	LanguageFilter  []string           `json:"language_filter"`
+	PreservePaths   []string           `json:"preserve_paths"`
 }
 
 // CompactResult contains the result of context optimization
 type CompactResult struct {
-	CompactedGraph   *types.CodeGraph      `json:"compacted_graph"`
-	OriginalSize     int                   `json:"original_size"`
-	CompactedSize    int                   `json:"compacted_size"`
-	CompressionRatio float64               `json:"compression_ratio"`
-	Strategy         string                `json:"strategy"`
-	ExecutionTime    time.Duration         `json:"execution_time"`
-	RemovedItems     *RemovedItems         `json:"removed_items"`
+	CompactedGraph   *types.CodeGraph       `json:"compacted_graph"`
+	OriginalSize     int                    `json:"original_size"`
+	CompactedSize    int                    `json:"compacted_size"`
+	CompressionRatio float64                `json:"compression_ratio"`
+	Strategy         string                 `json:"strategy"`
+	ExecutionTime    time.Duration          `json:"execution_time"`
+	RemovedItems     *RemovedItems          `json:"removed_items"`
 	Metadata         map[string]interface{} `json:"metadata"`
-	Warnings         []string              `json:"warnings"`
+	Warnings         []string               `json:"warnings"`
 }
 
 // RemovedItems tracks what was removed during compaction
 type RemovedItems struct {
-	Files    []string         `json:"files"`
-	Symbols  []types.SymbolId `json:"symbols"`
-	Edges    []types.EdgeId   `json:"edges"`
-	Nodes    []types.NodeId   `json:"nodes"`
-	Reason   string           `json:"reason"`
-	Impact   *ImpactAnalysis  `json:"impact"`
+	Files   []string         `json:"files"`
+	Symbols []types.SymbolId `json:"symbols"`
+	Edges   []types.EdgeId   `json:"edges"`
+	Nodes   []types.NodeId   `json:"nodes"`
+	Reason  string           `json:"reason"`
+	Impact  *ImpactAnalysis  `json:"impact"`
 }
 
 // ImpactAnalysis analyzes the impact of removing items
 type ImpactAnalysis struct {
-	DependentFiles   []string  `json:"dependent_files"`
-	BrokenReferences int       `json:"broken_references"`
-	IsolatedSymbols  int       `json:"isolated_symbols"`
-	RiskLevel        string    `json:"risk_level"`
-	Recommendations  []string  `json:"recommendations"`
+	DependentFiles   []string `json:"dependent_files"`
+	BrokenReferences int      `json:"broken_references"`
+	IsolatedSymbols  int      `json:"isolated_symbols"`
+	RiskLevel        string   `json:"risk_level"`
+	Recommendations  []string `json:"recommendations"`
 }
 
 // NewCompactController creates a new compact controller
@@ -107,7 +107,7 @@ func NewCompactController(config *CompactConfig) *CompactController {
 	controller := &CompactController{
 		strategies: make(map[string]Strategy),
 		config:     config,
-		metrics:    &CompactMetrics{
+		metrics: &CompactMetrics{
 			StrategiesUsed: make(map[string]int64),
 		},
 	}
@@ -126,19 +126,19 @@ func NewCompactController(config *CompactConfig) *CompactController {
 // DefaultCompactConfig returns default configuration
 func DefaultCompactConfig() *CompactConfig {
 	return &CompactConfig{
-		EnableCompaction:      true,
-		DefaultStrategy:       "hybrid",
-		MaxContextSize:        10000,
-		CompressionRatio:      0.7,
-		PriorityThreshold:     0.5,
-		CacheEnabled:          true,
-		CacheSize:             100,
-		MetricsEnabled:        true,
-		StrategyConfig:        make(map[string]interface{}),
-		AdaptiveEnabled:       true,
-		AdaptiveThreshold:     0.8,
-		BatchSize:             50,
-		ParallelProcessing:    true,
+		EnableCompaction:   true,
+		DefaultStrategy:    "hybrid",
+		MaxContextSize:     10000,
+		CompressionRatio:   0.7,
+		PriorityThreshold:  0.5,
+		CacheEnabled:       true,
+		CacheSize:          100,
+		MetricsEnabled:     true,
+		StrategyConfig:     make(map[string]interface{}),
+		AdaptiveEnabled:    true,
+		AdaptiveThreshold:  0.8,
+		BatchSize:          50,
+		ParallelProcessing: true,
 	}
 }
 
@@ -210,7 +210,7 @@ func (cc *CompactController) Compact(ctx context.Context, request *CompactReques
 	// Update result metadata
 	result.Strategy = strategyName
 	result.ExecutionTime = time.Since(start)
-	
+
 	// Add adaptive metadata if adaptive selection was used
 	if cc.config.AdaptiveEnabled && (request.Strategy == "" || request.Strategy == "adaptive") && strategyName != request.Strategy {
 		if result.Metadata == nil {
@@ -218,7 +218,7 @@ func (cc *CompactController) Compact(ctx context.Context, request *CompactReques
 		}
 		result.Metadata["adaptive_choice"] = strategyName
 	}
-	
+
 	// Calculate compression ratio
 	originalSize := cc.calculateGraphSize(request.Graph)
 	compactedSize := cc.calculateGraphSize(result.CompactedGraph)
@@ -237,7 +237,7 @@ func (cc *CompactController) Compact(ctx context.Context, request *CompactReques
 // CompactMultiple performs batch compaction using different strategies
 func (cc *CompactController) CompactMultiple(ctx context.Context, requests []*CompactRequest) ([]*CompactResult, error) {
 	results := make([]*CompactResult, len(requests))
-	
+
 	if cc.config.ParallelProcessing && len(requests) > 1 {
 		// Process in parallel
 		type resultWithIndex struct {
@@ -245,16 +245,16 @@ func (cc *CompactController) CompactMultiple(ctx context.Context, requests []*Co
 			err    error
 			index  int
 		}
-		
+
 		resultChan := make(chan resultWithIndex, len(requests))
-		
+
 		for i, request := range requests {
 			go func(idx int, req *CompactRequest) {
 				result, err := cc.Compact(ctx, req)
 				resultChan <- resultWithIndex{result, err, idx}
 			}(i, request)
 		}
-		
+
 		// Collect results
 		for i := 0; i < len(requests); i++ {
 			res := <-resultChan
@@ -273,18 +273,18 @@ func (cc *CompactController) CompactMultiple(ctx context.Context, requests []*Co
 			results[i] = result
 		}
 	}
-	
+
 	return results, nil
 }
 
 // AnalyzeCompactionPotential analyzes how much a graph could be compacted
 func (cc *CompactController) AnalyzeCompactionPotential(graph *types.CodeGraph) *CompactionAnalysis {
 	analysis := &CompactionAnalysis{
-		TotalFiles:      len(graph.Files),
-		TotalSymbols:    len(graph.Symbols),
-		TotalNodes:      len(graph.Nodes),
-		TotalEdges:      len(graph.Edges),
-		Strategies:      make(map[string]*StrategyAnalysis),
+		TotalFiles:   len(graph.Files),
+		TotalSymbols: len(graph.Symbols),
+		TotalNodes:   len(graph.Nodes),
+		TotalEdges:   len(graph.Edges),
+		Strategies:   make(map[string]*StrategyAnalysis),
 	}
 
 	// Analyze each strategy
@@ -333,20 +333,20 @@ func (cc *CompactController) validateRequest(request *CompactRequest) error {
 
 func (cc *CompactController) selectAdaptiveStrategy(request *CompactRequest) string {
 	graphSize := cc.calculateGraphSize(request.Graph)
-	
+
 	// Use different strategies based on graph characteristics
 	if graphSize > 50000 {
 		return "size" // For very large graphs, prioritize size reduction
 	}
-	
+
 	if len(request.Graph.Files) > 1000 {
 		return "dependency" // For many files, focus on dependencies
 	}
-	
+
 	if request.Requirements != nil && len(request.Requirements.PreserveFiles) > 0 {
 		return "relevance" // When specific files need preservation
 	}
-	
+
 	// Default to hybrid for balanced approach
 	return "hybrid"
 }
@@ -372,7 +372,7 @@ func (cc *CompactController) noCompactionResult(graph *types.CodeGraph) *Compact
 func (cc *CompactController) updateMetrics(result *CompactResult) {
 	cc.metrics.TotalCompactions++
 	cc.metrics.LastCompaction = time.Now()
-	
+
 	// Update average time
 	if cc.metrics.TotalCompactions == 1 {
 		cc.metrics.AverageTime = result.ExecutionTime
@@ -381,7 +381,7 @@ func (cc *CompactController) updateMetrics(result *CompactResult) {
 		alpha := 0.1
 		cc.metrics.AverageTime = time.Duration(float64(cc.metrics.AverageTime)*(1-alpha) + float64(result.ExecutionTime)*alpha)
 	}
-	
+
 	// Update compression ratio
 	if cc.metrics.TotalCompactions == 1 {
 		cc.metrics.CompressionRatio = result.CompressionRatio
@@ -389,7 +389,7 @@ func (cc *CompactController) updateMetrics(result *CompactResult) {
 		alpha := 0.1
 		cc.metrics.CompressionRatio = cc.metrics.CompressionRatio*(1-alpha) + result.CompressionRatio*alpha
 	}
-	
+
 	// Update memory saved
 	memorySaved := int64(result.OriginalSize - result.CompactedSize)
 	cc.metrics.MemorySaved += memorySaved
@@ -398,14 +398,14 @@ func (cc *CompactController) updateMetrics(result *CompactResult) {
 
 // CompactionAnalysis represents the analysis of compaction potential
 type CompactionAnalysis struct {
-	TotalFiles         int                            `json:"total_files"`
-	TotalSymbols       int                            `json:"total_symbols"`
-	TotalNodes         int                            `json:"total_nodes"`
-	TotalEdges         int                            `json:"total_edges"`
-	Strategies         map[string]*StrategyAnalysis   `json:"strategies"`
-	RecommendedStrategy string                        `json:"recommended_strategy"`
-	MaxCompressionRatio float64                       `json:"max_compression_ratio"`
-	EstimatedSavings   int                            `json:"estimated_savings"`
+	TotalFiles          int                          `json:"total_files"`
+	TotalSymbols        int                          `json:"total_symbols"`
+	TotalNodes          int                          `json:"total_nodes"`
+	TotalEdges          int                          `json:"total_edges"`
+	Strategies          map[string]*StrategyAnalysis `json:"strategies"`
+	RecommendedStrategy string                       `json:"recommended_strategy"`
+	MaxCompressionRatio float64                      `json:"max_compression_ratio"`
+	EstimatedSavings    int                          `json:"estimated_savings"`
 }
 
 // StrategyAnalysis represents analysis for a specific strategy
@@ -420,14 +420,14 @@ type StrategyAnalysis struct {
 func (ca *CompactionAnalysis) calculateOverallPotential() {
 	bestRatio := 1.0
 	bestStrategy := "hybrid" // Default strategy
-	
+
 	for strategy, analysis := range ca.Strategies {
 		if analysis.EstimatedCompression < bestRatio {
 			bestRatio = analysis.EstimatedCompression
 			bestStrategy = strategy
 		}
 	}
-	
+
 	// Ensure we always have a recommended strategy
 	if bestStrategy == "" && len(ca.Strategies) > 0 {
 		// If no strategy found, pick the first one
@@ -436,7 +436,7 @@ func (ca *CompactionAnalysis) calculateOverallPotential() {
 			break
 		}
 	}
-	
+
 	ca.RecommendedStrategy = bestStrategy
 	ca.MaxCompressionRatio = bestRatio
 	totalSize := ca.TotalFiles + ca.TotalSymbols + ca.TotalNodes + ca.TotalEdges

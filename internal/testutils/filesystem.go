@@ -25,13 +25,13 @@ type MockFileSystem struct {
 
 // MockFile represents a file in the mock file system
 type MockFile struct {
-	Path     string
-	Content  []byte
-	Mode     os.FileMode
-	ModTime  time.Time
-	Size     int64
-	IsDir    bool
-	mutex    sync.RWMutex
+	Path    string
+	Content []byte
+	Mode    os.FileMode
+	ModTime time.Time
+	Size    int64
+	IsDir   bool
+	mutex   sync.RWMutex
 }
 
 // MockDirectory represents a directory in the mock file system
@@ -52,7 +52,7 @@ type MockWatch struct {
 	Patterns []string
 	mutex    sync.RWMutex
 	mfs      *MockFileSystem // Reference to parent for cleanup
-	key      string         // Unique key for this watch
+	key      string          // Unique key for this watch
 }
 
 // MockFileEvent represents a file system event
@@ -225,7 +225,7 @@ func (mfs *MockFileSystem) createDirectoryInternal(path string, mode os.FileMode
 		if _, exists := mfs.directories[parentDir]; !exists {
 			mfs.createDirectoryInternal(parentDir, mode)
 		}
-		
+
 		if parentDirObj, exists := mfs.directories[parentDir]; exists {
 			parentDirObj.mutex.Lock()
 			// Check if child already exists to avoid duplicates
@@ -523,7 +523,7 @@ func (mfs *MockFileSystem) ListDirectory(path string) ([]os.FileInfo, error) {
 	var infos []os.FileInfo
 	for _, child := range dir.Children {
 		childPath := filepath.Join(path, child)
-		
+
 		if file, exists := mfs.files[childPath]; exists {
 			infos = append(infos, &MockFileInfo{
 				name:    child,
@@ -686,7 +686,7 @@ func (mfs *MockFileSystem) shouldFireEvent(watchPath, eventPath string, patterns
 	// Normalize paths
 	watchPath = filepath.Clean(watchPath)
 	eventPath = filepath.Clean(eventPath)
-	
+
 	// Check if event path is under watch path
 	if watchPath == "." {
 		// Watching root, accept all events
@@ -754,7 +754,7 @@ func (mw *MockWatch) Stop() {
 		mw.Active = false
 		close(mw.Events)
 		close(mw.Errors)
-		
+
 		// Remove from parent file system
 		if mw.mfs != nil {
 			mw.mfs.watchMutex.Lock()

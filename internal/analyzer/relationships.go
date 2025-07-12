@@ -24,26 +24,26 @@ func NewRelationshipAnalyzer(graph *types.CodeGraph) *RelationshipAnalyzer {
 type RelationshipType string
 
 const (
-	RelationshipImport      RelationshipType = "imports"
-	RelationshipCalls       RelationshipType = "calls"
-	RelationshipExtends     RelationshipType = "extends"
-	RelationshipImplements  RelationshipType = "implements"
-	RelationshipReferences  RelationshipType = "references"
-	RelationshipContains    RelationshipType = "contains"
-	RelationshipUses        RelationshipType = "uses"
-	RelationshipDepends     RelationshipType = "depends"
+	RelationshipImport     RelationshipType = "imports"
+	RelationshipCalls      RelationshipType = "calls"
+	RelationshipExtends    RelationshipType = "extends"
+	RelationshipImplements RelationshipType = "implements"
+	RelationshipReferences RelationshipType = "references"
+	RelationshipContains   RelationshipType = "contains"
+	RelationshipUses       RelationshipType = "uses"
+	RelationshipDepends    RelationshipType = "depends"
 )
 
 // RelationshipMetrics holds metrics about relationships
 type RelationshipMetrics struct {
-	TotalRelationships int                        `json:"total_relationships"`
-	ByType            map[RelationshipType]int    `json:"by_type"`
-	FileToFile        int                         `json:"file_to_file"`
-	SymbolToSymbol    int                         `json:"symbol_to_symbol"`
-	CrossFileRefs     int                         `json:"cross_file_refs"`
-	CircularDeps      []CircularDependency        `json:"circular_deps"`
-	HotspotFiles      []FileHotspot               `json:"hotspot_files"`
-	IsolatedFiles     []string                    `json:"isolated_files"`
+	TotalRelationships int                      `json:"total_relationships"`
+	ByType             map[RelationshipType]int `json:"by_type"`
+	FileToFile         int                      `json:"file_to_file"`
+	SymbolToSymbol     int                      `json:"symbol_to_symbol"`
+	CrossFileRefs      int                      `json:"cross_file_refs"`
+	CircularDeps       []CircularDependency     `json:"circular_deps"`
+	HotspotFiles       []FileHotspot            `json:"hotspot_files"`
+	IsolatedFiles      []string                 `json:"isolated_files"`
 }
 
 // CircularDependency represents a circular dependency between files
@@ -55,59 +55,59 @@ type CircularDependency struct {
 
 // FileHotspot represents a file with high dependency activity
 type FileHotspot struct {
-	FilePath      string  `json:"file_path"`
-	ImportCount   int     `json:"import_count"`
-	ReferenceCount int    `json:"reference_count"`
-	Score         float64 `json:"score"`
+	FilePath       string  `json:"file_path"`
+	ImportCount    int     `json:"import_count"`
+	ReferenceCount int     `json:"reference_count"`
+	Score          float64 `json:"score"`
 }
 
 // AnalyzeAllRelationships performs comprehensive relationship analysis
 func (ra *RelationshipAnalyzer) AnalyzeAllRelationships() (*RelationshipMetrics, error) {
 	metrics := &RelationshipMetrics{
-		ByType:       make(map[RelationshipType]int),
-		CircularDeps: make([]CircularDependency, 0),
-		HotspotFiles: make([]FileHotspot, 0),
+		ByType:        make(map[RelationshipType]int),
+		CircularDeps:  make([]CircularDependency, 0),
+		HotspotFiles:  make([]FileHotspot, 0),
 		IsolatedFiles: make([]string, 0),
 	}
 
 	// Analyze import relationships
 	ra.analyzeImportRelationships(metrics)
-	
+
 	// Analyze symbol usage relationships
 	ra.analyzeSymbolUsageRelationships(metrics)
-	
+
 	// Analyze call relationships
 	ra.analyzeCallRelationships(metrics)
-	
+
 	// Detect circular dependencies
 	ra.detectCircularDependencies(metrics)
-	
+
 	// Identify hotspot files
 	ra.identifyHotspotFiles(metrics)
-	
+
 	// Find isolated files
 	ra.findIsolatedFiles(metrics)
-	
+
 	// Calculate totals
 	for _, count := range metrics.ByType {
 		metrics.TotalRelationships += count
 	}
-	
+
 	return metrics, nil
 }
 
 // analyzeImportRelationships analyzes import-based relationships
 func (ra *RelationshipAnalyzer) analyzeImportRelationships(metrics *RelationshipMetrics) {
 	importCount := 0
-	
+
 	for filePath, fileNode := range ra.graph.Files {
 		for _, imp := range fileNode.Imports {
 			targetFile := ra.resolveImportPath(imp.Path, filePath)
-			
+
 			if targetFile != "" {
 				// Create or update import relationship
 				edgeId := types.EdgeId(fmt.Sprintf("import-%s-%s", filePath, targetFile))
-				
+
 				if _, exists := ra.graph.Edges[edgeId]; !exists {
 					edge := &types.GraphEdge{
 						Id:     edgeId,
@@ -116,15 +116,15 @@ func (ra *RelationshipAnalyzer) analyzeImportRelationships(metrics *Relationship
 						Type:   string(RelationshipImport),
 						Weight: 1.0,
 						Metadata: map[string]interface{}{
-							"import_path":  imp.Path,
-							"specifiers":   imp.Specifiers,
-							"is_default":   imp.IsDefault,
+							"import_path":   imp.Path,
+							"specifiers":    imp.Specifiers,
+							"is_default":    imp.IsDefault,
 							"resolved_path": targetFile,
 						},
 					}
 					ra.graph.Edges[edgeId] = edge
 				}
-				
+
 				importCount++
 			} else {
 				// External import
@@ -136,10 +136,10 @@ func (ra *RelationshipAnalyzer) analyzeImportRelationships(metrics *Relationship
 					Type:   string(RelationshipImport),
 					Weight: 0.5, // Lower weight for external imports
 					Metadata: map[string]interface{}{
-						"import_path":  imp.Path,
-						"specifiers":   imp.Specifiers,
-						"is_default":   imp.IsDefault,
-						"is_external":  true,
+						"import_path": imp.Path,
+						"specifiers":  imp.Specifiers,
+						"is_default":  imp.IsDefault,
+						"is_external": true,
 					},
 				}
 				ra.graph.Edges[edgeId] = edge
@@ -147,7 +147,7 @@ func (ra *RelationshipAnalyzer) analyzeImportRelationships(metrics *Relationship
 			}
 		}
 	}
-	
+
 	metrics.ByType[RelationshipImport] = importCount
 	metrics.FileToFile += importCount
 }
@@ -156,7 +156,7 @@ func (ra *RelationshipAnalyzer) analyzeImportRelationships(metrics *Relationship
 func (ra *RelationshipAnalyzer) analyzeSymbolUsageRelationships(metrics *RelationshipMetrics) {
 	usageCount := 0
 	referenceCount := 0
-	
+
 	// Analyze symbol usage within files
 	for filePath, fileNode := range ra.graph.Files {
 		for _, symbolId := range fileNode.Symbols {
@@ -164,10 +164,10 @@ func (ra *RelationshipAnalyzer) analyzeSymbolUsageRelationships(metrics *Relatio
 			if symbol == nil {
 				continue
 			}
-			
+
 			// Analyze references in symbol signatures and documentation
 			references := ra.extractSymbolReferences(symbol)
-			
+
 			for _, ref := range references {
 				targetSymbol := ra.findSymbolByName(ref.Name, ref.Context)
 				if targetSymbol != nil {
@@ -187,7 +187,7 @@ func (ra *RelationshipAnalyzer) analyzeSymbolUsageRelationships(metrics *Relatio
 						},
 					}
 					ra.graph.Edges[edgeId] = edge
-					
+
 					if symbol.FullyQualifiedName != targetSymbol.FullyQualifiedName {
 						referenceCount++
 					}
@@ -196,7 +196,7 @@ func (ra *RelationshipAnalyzer) analyzeSymbolUsageRelationships(metrics *Relatio
 			}
 		}
 	}
-	
+
 	metrics.ByType[RelationshipReferences] = usageCount
 	metrics.ByType[RelationshipUses] = usageCount
 	metrics.SymbolToSymbol += usageCount
@@ -206,11 +206,11 @@ func (ra *RelationshipAnalyzer) analyzeSymbolUsageRelationships(metrics *Relatio
 // analyzeCallRelationships analyzes function/method call relationships
 func (ra *RelationshipAnalyzer) analyzeCallRelationships(metrics *RelationshipMetrics) {
 	callCount := 0
-	
+
 	// For now, this is a basic implementation
 	// In a full implementation, we would parse function bodies to extract calls
 	// This requires more sophisticated AST analysis
-	
+
 	for _, symbol := range ra.graph.Symbols {
 		if symbol.Type == types.SymbolTypeFunction || symbol.Type == types.SymbolTypeMethod {
 			// Analyze function signature for parameter types (simplified)
@@ -220,7 +220,7 @@ func (ra *RelationshipAnalyzer) analyzeCallRelationships(metrics *RelationshipMe
 			}
 		}
 	}
-	
+
 	metrics.ByType[RelationshipCalls] = callCount
 }
 
@@ -228,7 +228,7 @@ func (ra *RelationshipAnalyzer) analyzeCallRelationships(metrics *RelationshipMe
 func (ra *RelationshipAnalyzer) detectCircularDependencies(metrics *RelationshipMetrics) {
 	visited := make(map[string]bool)
 	recursionStack := make(map[string]bool)
-	
+
 	for filePath := range ra.graph.Files {
 		if !visited[filePath] {
 			if cycle := ra.detectCycleDFS(filePath, visited, recursionStack, make([]string, 0)); cycle != nil {
@@ -247,18 +247,18 @@ func (ra *RelationshipAnalyzer) detectCycleDFS(filePath string, visited, recursi
 	visited[filePath] = true
 	recursionStack[filePath] = true
 	path = append(path, filePath)
-	
+
 	fileNode := ra.graph.Files[filePath]
 	if fileNode == nil {
 		return nil
 	}
-	
+
 	for _, imp := range fileNode.Imports {
 		targetFile := ra.resolveImportPath(imp.Path, filePath)
 		if targetFile == "" {
 			continue
 		}
-		
+
 		if !visited[targetFile] {
 			if cycle := ra.detectCycleDFS(targetFile, visited, recursionStack, path); cycle != nil {
 				return cycle
@@ -277,7 +277,7 @@ func (ra *RelationshipAnalyzer) detectCycleDFS(filePath string, visited, recursi
 			}
 		}
 	}
-	
+
 	recursionStack[filePath] = false
 	return nil
 }
@@ -285,23 +285,23 @@ func (ra *RelationshipAnalyzer) detectCycleDFS(filePath string, visited, recursi
 // identifyHotspotFiles identifies files with high dependency activity
 func (ra *RelationshipAnalyzer) identifyHotspotFiles(metrics *RelationshipMetrics) {
 	fileScores := make(map[string]*FileHotspot)
-	
+
 	// Initialize hotspot data for each file
 	for filePath := range ra.graph.Files {
 		fileScores[filePath] = &FileHotspot{
-			FilePath:      filePath,
-			ImportCount:   0,
+			FilePath:       filePath,
+			ImportCount:    0,
 			ReferenceCount: 0,
-			Score:         0.0,
+			Score:          0.0,
 		}
 	}
-	
+
 	// Count incoming and outgoing dependencies
 	for _, edge := range ra.graph.Edges {
 		if edge.Type == string(RelationshipImport) {
 			fromFile := ra.extractFileFromNodeId(edge.From)
 			toFile := ra.extractFileFromNodeId(edge.To)
-			
+
 			if fromFile != "" && fileScores[fromFile] != nil {
 				fileScores[fromFile].ImportCount++
 			}
@@ -310,12 +310,12 @@ func (ra *RelationshipAnalyzer) identifyHotspotFiles(metrics *RelationshipMetric
 			}
 		}
 	}
-	
+
 	// Calculate scores and identify top hotspots
 	for _, hotspot := range fileScores {
 		// Simple scoring: imports + references * 2 (being referenced is more important)
 		hotspot.Score = float64(hotspot.ImportCount) + float64(hotspot.ReferenceCount)*2.0
-		
+
 		// Only include files with significant activity
 		if hotspot.Score >= 2.0 {
 			metrics.HotspotFiles = append(metrics.HotspotFiles, *hotspot)
@@ -326,13 +326,13 @@ func (ra *RelationshipAnalyzer) identifyHotspotFiles(metrics *RelationshipMetric
 // findIsolatedFiles finds files with no dependencies
 func (ra *RelationshipAnalyzer) findIsolatedFiles(metrics *RelationshipMetrics) {
 	connectedFiles := make(map[string]bool)
-	
+
 	// Mark files that have any edges
 	for _, edge := range ra.graph.Edges {
 		if edge.Type == string(RelationshipImport) {
 			fromFile := ra.extractFileFromNodeId(edge.From)
 			toFile := ra.extractFileFromNodeId(edge.To)
-			
+
 			if fromFile != "" {
 				connectedFiles[fromFile] = true
 			}
@@ -341,7 +341,7 @@ func (ra *RelationshipAnalyzer) findIsolatedFiles(metrics *RelationshipMetrics) 
 			}
 		}
 	}
-	
+
 	// Find files with no connections
 	for filePath := range ra.graph.Files {
 		if !connectedFiles[filePath] {
@@ -363,7 +363,7 @@ type SymbolReference struct {
 // extractSymbolReferences extracts symbol references from signatures and documentation
 func (ra *RelationshipAnalyzer) extractSymbolReferences(symbol *types.Symbol) []SymbolReference {
 	references := make([]SymbolReference, 0)
-	
+
 	// Simple pattern matching for TypeScript/JavaScript types
 	if symbol.Language == "typescript" || symbol.Language == "javascript" {
 		// Extract type references from signature
@@ -379,7 +379,7 @@ func (ra *RelationshipAnalyzer) extractSymbolReferences(symbol *types.Symbol) []
 			}
 		}
 	}
-	
+
 	return references
 }
 
@@ -387,14 +387,14 @@ func (ra *RelationshipAnalyzer) extractSymbolReferences(symbol *types.Symbol) []
 func (ra *RelationshipAnalyzer) extractTypeReferences(signature string) []string {
 	// Simple pattern matching - could be enhanced with proper parsing
 	types := make([]string, 0)
-	
+
 	// Look for TypeScript type annotations
 	if strings.Contains(signature, ":") {
 		parts := strings.Split(signature, ":")
 		for _, part := range parts[1:] {
 			// Extract type name (simplified)
 			typeName := strings.TrimSpace(part)
-			
+
 			// Remove common separators and tokens
 			if idx := strings.Index(typeName, " "); idx != -1 {
 				typeName = typeName[:idx]
@@ -408,7 +408,7 @@ func (ra *RelationshipAnalyzer) extractTypeReferences(signature string) []string
 			if idx := strings.Index(typeName, ";"); idx != -1 {
 				typeName = typeName[:idx]
 			}
-			
+
 			// Clean up the type name
 			typeName = strings.TrimSpace(typeName)
 			if typeName != "" && !ra.isBuiltinType(typeName) {
@@ -416,7 +416,7 @@ func (ra *RelationshipAnalyzer) extractTypeReferences(signature string) []string
 			}
 		}
 	}
-	
+
 	return types
 }
 
@@ -427,13 +427,13 @@ func (ra *RelationshipAnalyzer) isBuiltinType(typeName string) bool {
 		"void", "any", "unknown", "never", "bigint", "symbol",
 		"Array", "Promise", "Date", "RegExp", "Error",
 	}
-	
+
 	for _, builtin := range builtins {
 		if typeName == builtin {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -462,7 +462,7 @@ func (ra *RelationshipAnalyzer) resolveImportPath(importPath, fromFile string) s
 	if strings.HasPrefix(importPath, "./") || strings.HasPrefix(importPath, "../") {
 		dir := filepath.Dir(fromFile)
 		resolved := filepath.Join(dir, importPath)
-		
+
 		// Try common extensions
 		extensions := []string{".ts", ".tsx", ".js", ".jsx"}
 		for _, ext := range extensions {
@@ -471,7 +471,7 @@ func (ra *RelationshipAnalyzer) resolveImportPath(importPath, fromFile string) s
 				return candidate
 			}
 		}
-		
+
 		// Try with index files
 		for _, ext := range extensions {
 			candidate := filepath.Join(resolved, "index"+ext)
@@ -480,6 +480,6 @@ func (ra *RelationshipAnalyzer) resolveImportPath(importPath, fromFile string) s
 			}
 		}
 	}
-	
+
 	return ""
 }

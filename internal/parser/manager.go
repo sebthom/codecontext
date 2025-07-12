@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/nuthan-ms/codecontext/pkg/types"
 	sitter "github.com/tree-sitter/go-tree-sitter"
 	javascript "github.com/tree-sitter/tree-sitter-javascript/bindings/go"
-	"github.com/nuthan-ms/codecontext/pkg/types"
 )
 
 // Manager implements the parser manager interface
@@ -28,10 +28,10 @@ func NewManager() *Manager {
 		languages: make(map[string]*sitter.Language),
 		cache:     NewASTCache(),
 	}
-	
+
 	// Initialize supported languages
 	m.initLanguages()
-	
+
 	return m
 }
 
@@ -40,20 +40,20 @@ func (m *Manager) initLanguages() {
 	// JavaScript grammar using official bindings
 	jsLang := sitter.NewLanguage(javascript.Language())
 	m.languages["javascript"] = jsLang
-	
+
 	jsParser := sitter.NewParser()
 	jsParser.SetLanguage(jsLang)
 	m.parsers["javascript"] = jsParser
-	
+
 	// TypeScript - use JavaScript grammar as fallback until TypeScript bindings are fixed
 	// Both JS and TS have similar syntax and this provides basic parsing capability
 	tsLang := sitter.NewLanguage(javascript.Language())
 	m.languages["typescript"] = tsLang
-	
+
 	tsParser := sitter.NewParser()
 	tsParser.SetLanguage(tsLang)
 	m.parsers["typescript"] = tsParser
-	
+
 	// For JSON and YAML, we'll use basic parsers for now
 	// These can be extended with proper grammars later
 	basicParser := sitter.NewParser()
@@ -70,7 +70,7 @@ func (m *Manager) ParseFile(filePath string, language types.Language) (*types.AS
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file %s: %w", filePath, err)
 	}
-	
+
 	return m.parseContent(string(content), language, filePath)
 }
 
@@ -81,22 +81,22 @@ func (m *Manager) ParseFileVersioned(filePath, content, version string) (*types.
 	if lang == nil {
 		return nil, fmt.Errorf("unsupported file type: %s", filePath)
 	}
-	
+
 	// Parse the content
 	ast, err := m.parseContent(content, *lang, filePath)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	ast.Version = version
-	
+
 	versionedAST := &types.VersionedAST{
 		AST:       ast,
 		Version:   version,
 		Hash:      calculateHash(content),
 		Timestamp: time.Now(),
 	}
-	
+
 	return versionedAST, nil
 }
 
@@ -105,10 +105,10 @@ func (m *Manager) ExtractSymbols(ast *types.AST) ([]*types.Symbol, error) {
 	if ast.Root == nil {
 		return nil, fmt.Errorf("AST root is nil")
 	}
-	
+
 	var symbols []*types.Symbol
 	m.extractSymbolsRecursive(ast.Root, ast.FilePath, ast.Language, &symbols)
-	
+
 	return symbols, nil
 }
 
@@ -117,10 +117,10 @@ func (m *Manager) ExtractImports(ast *types.AST) ([]*types.Import, error) {
 	if ast.Root == nil {
 		return nil, fmt.Errorf("AST root is nil")
 	}
-	
+
 	var imports []*types.Import
 	m.extractImportsRecursive(ast.Root, &imports)
-	
+
 	return imports, nil
 }
 
@@ -128,7 +128,7 @@ func (m *Manager) ExtractImports(ast *types.AST) ([]*types.Import, error) {
 func (m *Manager) GetSupportedLanguages() []types.Language {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	var languages []types.Language
 	for name, _ := range m.languages {
 		lang := types.Language{
@@ -139,7 +139,7 @@ func (m *Manager) GetSupportedLanguages() []types.Language {
 		}
 		languages = append(languages, lang)
 	}
-	
+
 	return languages
 }
 
@@ -147,30 +147,30 @@ func (m *Manager) GetSupportedLanguages() []types.Language {
 func (m *Manager) ClassifyFile(filePath string) (*types.FileClassification, error) {
 	ext := filepath.Ext(filePath)
 	baseName := filepath.Base(filePath)
-	
+
 	// Detect language
 	lang := m.detectLanguage(filePath)
 	if lang == nil {
 		return nil, fmt.Errorf("unsupported file type: %s", filePath)
 	}
-	
+
 	// Determine file type
 	fileType := "source"
 	isTest := false
-	
+
 	if strings.Contains(baseName, "test") || strings.Contains(baseName, "spec") {
 		fileType = "test"
 		isTest = true
 	} else if strings.Contains(baseName, "config") || ext == ".json" || ext == ".yaml" || ext == ".yml" {
 		fileType = "config"
 	}
-	
+
 	// Check if generated
-	isGenerated := strings.Contains(baseName, "generated") || 
+	isGenerated := strings.Contains(baseName, "generated") ||
 		strings.Contains(baseName, "auto") ||
 		strings.HasSuffix(baseName, ".gen.ts") ||
 		strings.HasSuffix(baseName, ".generated.ts")
-	
+
 	return &types.FileClassification{
 		Language:    *lang,
 		FileType:    fileType,
@@ -189,7 +189,7 @@ func (m *Manager) GetASTCache() types.ASTCache {
 
 func (m *Manager) detectLanguage(filePath string) *types.Language {
 	ext := filepath.Ext(filePath)
-	
+
 	switch ext {
 	case ".ts", ".tsx":
 		return &types.Language{
@@ -229,11 +229,11 @@ func (m *Manager) parseContent(content string, language types.Language, filePath
 	parser, exists := m.parsers[language.Name]
 	treeSitterLang := m.languages[language.Name]
 	m.mu.RUnlock()
-	
+
 	if !exists {
 		return nil, fmt.Errorf("unsupported language: %s", language.Name)
 	}
-	
+
 	// For languages without real grammars (JSON, YAML), create mock AST
 	if treeSitterLang == nil {
 		ast := &types.AST{
@@ -244,11 +244,11 @@ func (m *Manager) parseContent(content string, language types.Language, filePath
 			ParsedAt:       time.Now(),
 			TreeSitterTree: nil,
 		}
-		
+
 		if len(filePath) > 0 {
 			ast.FilePath = filePath[0]
 		}
-		
+
 		// Create a basic root node for unsupported languages
 		ast.Root = &types.ASTNode{
 			Id:   "root",
@@ -260,14 +260,14 @@ func (m *Manager) parseContent(content string, language types.Language, filePath
 			},
 			Value: content,
 		}
-		
+
 		return ast, nil
 	}
-	
+
 	// Parse using real Tree-sitter grammar
 	tree := parser.Parse([]byte(content), nil)
 	defer tree.Close()
-	
+
 	// Create AST with real Tree-sitter data
 	ast := &types.AST{
 		Language:       language.Name,
@@ -277,11 +277,11 @@ func (m *Manager) parseContent(content string, language types.Language, filePath
 		ParsedAt:       time.Now(),
 		TreeSitterTree: tree,
 	}
-	
+
 	if len(filePath) > 0 {
 		ast.FilePath = filePath[0]
 	}
-	
+
 	// Convert Tree-sitter root node to our AST format
 	if tree.RootNode() != nil {
 		ast.Root = m.convertTreeSitterNode(tree.RootNode(), content)
@@ -289,7 +289,7 @@ func (m *Manager) parseContent(content string, language types.Language, filePath
 			ast.Root.Location.FilePath = ast.FilePath
 		}
 	}
-	
+
 	return ast, nil
 }
 
@@ -298,10 +298,10 @@ func (m *Manager) convertTreeSitterNode(node *sitter.Node, content string) *type
 	if node == nil {
 		return nil
 	}
-	
+
 	startPos := node.StartPosition()
 	endPos := node.EndPosition()
-	
+
 	astNode := &types.ASTNode{
 		Id:   fmt.Sprintf("node-%d-%d", node.StartByte(), node.EndByte()),
 		Type: node.Kind(),
@@ -312,12 +312,12 @@ func (m *Manager) convertTreeSitterNode(node *sitter.Node, content string) *type
 			EndColumn: int(endPos.Column) + 1,
 		},
 	}
-	
+
 	// Extract text content for the node
 	if int(node.StartByte()) < len(content) && int(node.EndByte()) <= len(content) {
 		astNode.Value = content[node.StartByte():node.EndByte()]
 	}
-	
+
 	// Convert children (limit depth to prevent excessive memory usage)
 	childCount := int(node.ChildCount())
 	if childCount > 0 && childCount < 1000 { // Reasonable limit
@@ -330,7 +330,7 @@ func (m *Manager) convertTreeSitterNode(node *sitter.Node, content string) *type
 			}
 		}
 	}
-	
+
 	return astNode
 }
 
@@ -338,12 +338,12 @@ func (m *Manager) extractSymbolsRecursive(node *types.ASTNode, filePath, languag
 	if node == nil {
 		return
 	}
-	
+
 	// Check if this node represents a symbol
 	if symbol := m.nodeToSymbol(node, filePath, language); symbol != nil {
 		*symbols = append(*symbols, symbol)
 	}
-	
+
 	// Recursively extract from children
 	for _, child := range node.Children {
 		m.extractSymbolsRecursive(child, filePath, language, symbols)
@@ -355,84 +355,84 @@ func (m *Manager) nodeToSymbol(node *types.ASTNode, filePath, language string) *
 	switch node.Type {
 	case "function_declaration", "function", "function_expression", "arrow_function":
 		return &types.Symbol{
-			Id:       types.SymbolId(fmt.Sprintf("func-%s-%d", filePath, node.Location.Line)),
-			Name:     m.extractSymbolName(node),
-			Type:     types.SymbolTypeFunction,
-			Location: convertLocation(node.Location),
-			Signature: m.extractFunctionSignature(node),
-			Language: language,
-			Hash:     calculateHash(node.Value),
+			Id:           types.SymbolId(fmt.Sprintf("func-%s-%d", filePath, node.Location.Line)),
+			Name:         m.extractSymbolName(node),
+			Type:         types.SymbolTypeFunction,
+			Location:     convertLocation(node.Location),
+			Signature:    m.extractFunctionSignature(node),
+			Language:     language,
+			Hash:         calculateHash(node.Value),
 			LastModified: time.Now(),
 		}
 	case "class_declaration", "class", "class_expression":
 		return &types.Symbol{
-			Id:       types.SymbolId(fmt.Sprintf("class-%s-%d", filePath, node.Location.Line)),
-			Name:     m.extractSymbolName(node),
-			Type:     types.SymbolTypeClass,
-			Location: convertLocation(node.Location),
-			Language: language,
-			Hash:     calculateHash(node.Value),
+			Id:           types.SymbolId(fmt.Sprintf("class-%s-%d", filePath, node.Location.Line)),
+			Name:         m.extractSymbolName(node),
+			Type:         types.SymbolTypeClass,
+			Location:     convertLocation(node.Location),
+			Language:     language,
+			Hash:         calculateHash(node.Value),
 			LastModified: time.Now(),
 		}
 	case "interface_declaration", "interface":
 		return &types.Symbol{
-			Id:       types.SymbolId(fmt.Sprintf("interface-%s-%d", filePath, node.Location.Line)),
-			Name:     m.extractSymbolName(node),
-			Type:     types.SymbolTypeInterface,
-			Location: convertLocation(node.Location),
-			Language: language,
-			Hash:     calculateHash(node.Value),
+			Id:           types.SymbolId(fmt.Sprintf("interface-%s-%d", filePath, node.Location.Line)),
+			Name:         m.extractSymbolName(node),
+			Type:         types.SymbolTypeInterface,
+			Location:     convertLocation(node.Location),
+			Language:     language,
+			Hash:         calculateHash(node.Value),
 			LastModified: time.Now(),
 		}
 	case "type_alias_declaration", "type_declaration":
 		return &types.Symbol{
-			Id:       types.SymbolId(fmt.Sprintf("type-%s-%d", filePath, node.Location.Line)),
-			Name:     m.extractSymbolName(node),
-			Type:     types.SymbolTypeType,
-			Location: convertLocation(node.Location),
-			Language: language,
-			Hash:     calculateHash(node.Value),
+			Id:           types.SymbolId(fmt.Sprintf("type-%s-%d", filePath, node.Location.Line)),
+			Name:         m.extractSymbolName(node),
+			Type:         types.SymbolTypeType,
+			Location:     convertLocation(node.Location),
+			Language:     language,
+			Hash:         calculateHash(node.Value),
 			LastModified: time.Now(),
 		}
 	case "variable_declaration", "lexical_declaration":
 		return &types.Symbol{
-			Id:       types.SymbolId(fmt.Sprintf("var-%s-%d", filePath, node.Location.Line)),
-			Name:     m.extractSymbolName(node),
-			Type:     types.SymbolTypeVariable,
-			Location: convertLocation(node.Location),
-			Language: language,
-			Hash:     calculateHash(node.Value),
+			Id:           types.SymbolId(fmt.Sprintf("var-%s-%d", filePath, node.Location.Line)),
+			Name:         m.extractSymbolName(node),
+			Type:         types.SymbolTypeVariable,
+			Location:     convertLocation(node.Location),
+			Language:     language,
+			Hash:         calculateHash(node.Value),
 			LastModified: time.Now(),
 		}
 	case "method_definition", "method_signature":
 		return &types.Symbol{
-			Id:       types.SymbolId(fmt.Sprintf("method-%s-%d", filePath, node.Location.Line)),
-			Name:     m.extractSymbolName(node),
-			Type:     types.SymbolTypeMethod,
-			Location: convertLocation(node.Location),
-			Signature: m.extractFunctionSignature(node),
-			Language: language,
-			Hash:     calculateHash(node.Value),
+			Id:           types.SymbolId(fmt.Sprintf("method-%s-%d", filePath, node.Location.Line)),
+			Name:         m.extractSymbolName(node),
+			Type:         types.SymbolTypeMethod,
+			Location:     convertLocation(node.Location),
+			Signature:    m.extractFunctionSignature(node),
+			Language:     language,
+			Hash:         calculateHash(node.Value),
 			LastModified: time.Now(),
 		}
 	case "import_statement", "import_declaration":
 		return &types.Symbol{
-			Id:       types.SymbolId(fmt.Sprintf("import-%s-%d", filePath, node.Location.Line)),
-			Name:     m.extractImportName(node),
-			Type:     types.SymbolTypeImport,
-			Location: convertLocation(node.Location),
-			Language: language,
-			Hash:     calculateHash(node.Value),
+			Id:           types.SymbolId(fmt.Sprintf("import-%s-%d", filePath, node.Location.Line)),
+			Name:         m.extractImportName(node),
+			Type:         types.SymbolTypeImport,
+			Location:     convertLocation(node.Location),
+			Language:     language,
+			Hash:         calculateHash(node.Value),
 			LastModified: time.Now(),
 		}
 	case "export_statement", "export_declaration":
 		return &types.Symbol{
-			Id:       types.SymbolId(fmt.Sprintf("export-%s-%d", filePath, node.Location.Line)),
-			Name:     m.extractSymbolName(node),
-			Type:     types.SymbolTypeNamespace, // Using namespace for exports
-			Location: convertLocation(node.Location),
-			Language: language,
-			Hash:     calculateHash(node.Value),
+			Id:           types.SymbolId(fmt.Sprintf("export-%s-%d", filePath, node.Location.Line)),
+			Name:         m.extractSymbolName(node),
+			Type:         types.SymbolTypeNamespace, // Using namespace for exports
+			Location:     convertLocation(node.Location),
+			Language:     language,
+			Hash:         calculateHash(node.Value),
 			LastModified: time.Now(),
 		}
 	default:
@@ -444,12 +444,12 @@ func (m *Manager) extractImportsRecursive(node *types.ASTNode, imports *[]*types
 	if node == nil {
 		return
 	}
-	
+
 	// Check if this node represents an import
 	if imp := m.nodeToImport(node); imp != nil {
 		*imports = append(*imports, imp)
 	}
-	
+
 	// Recursively extract from children
 	for _, child := range node.Children {
 		m.extractImportsRecursive(child, imports)
@@ -460,11 +460,11 @@ func (m *Manager) nodeToImport(node *types.ASTNode) *types.Import {
 	if node.Type != "import_statement" && node.Type != "import_declaration" {
 		return nil
 	}
-	
+
 	imp := &types.Import{
 		Location: node.Location,
 	}
-	
+
 	// Extract import path and specifiers from children
 	for _, child := range node.Children {
 		switch child.Type {
@@ -486,7 +486,7 @@ func (m *Manager) nodeToImport(node *types.ASTNode) *types.Import {
 			}
 		}
 	}
-	
+
 	return imp
 }
 
@@ -523,19 +523,19 @@ func (m *Manager) extractSymbolName(node *types.ASTNode) string {
 	if node == nil {
 		return "unknown"
 	}
-	
+
 	// Look for identifier children that represent the symbol name
 	for _, child := range node.Children {
 		if child.Type == "identifier" || child.Type == "type_identifier" {
 			return strings.TrimSpace(child.Value)
 		}
-		
+
 		// For some nodes, the name might be nested deeper
 		if child.Type == "property_identifier" || child.Type == "name" {
 			return strings.TrimSpace(child.Value)
 		}
 	}
-	
+
 	// Fallback: extract from node value using heuristics
 	value := strings.TrimSpace(node.Value)
 	if value != "" {
@@ -544,11 +544,11 @@ func (m *Manager) extractSymbolName(node *types.ASTNode) string {
 		if len(lines) > 0 {
 			firstLine := strings.TrimSpace(lines[0])
 			words := strings.Fields(firstLine)
-			
+
 			// Look for name after common keywords
 			for i, word := range words {
-				if word == "function" || word == "class" || word == "interface" || 
-				   word == "type" || word == "const" || word == "let" || word == "var" {
+				if word == "function" || word == "class" || word == "interface" ||
+					word == "type" || word == "const" || word == "let" || word == "var" {
 					if i+1 < len(words) {
 						name := strings.TrimSuffix(words[i+1], "(")
 						name = strings.TrimSuffix(name, "{")
@@ -556,7 +556,7 @@ func (m *Manager) extractSymbolName(node *types.ASTNode) string {
 					}
 				}
 			}
-			
+
 			// If no keyword found, return first identifier-like word
 			for _, word := range words {
 				if isValidIdentifier(word) {
@@ -565,7 +565,7 @@ func (m *Manager) extractSymbolName(node *types.ASTNode) string {
 			}
 		}
 	}
-	
+
 	return "unknown"
 }
 
@@ -574,14 +574,14 @@ func (m *Manager) extractFunctionSignature(node *types.ASTNode) string {
 	if node == nil {
 		return ""
 	}
-	
+
 	// Look for parameter list and return type
 	for _, child := range node.Children {
 		if child.Type == "formal_parameters" || child.Type == "parameters" {
 			return strings.TrimSpace(child.Value)
 		}
 	}
-	
+
 	// Fallback: extract first line of the node
 	value := strings.TrimSpace(node.Value)
 	lines := strings.Split(value, "\n")
@@ -593,7 +593,7 @@ func (m *Manager) extractFunctionSignature(node *types.ASTNode) string {
 		}
 		return signature
 	}
-	
+
 	return ""
 }
 
@@ -602,7 +602,7 @@ func (m *Manager) extractImportName(node *types.ASTNode) string {
 	if node == nil {
 		return "unknown"
 	}
-	
+
 	// Look for import specifiers
 	for _, child := range node.Children {
 		if child.Type == "import_specifier" || child.Type == "namespace_import" {
@@ -620,7 +620,7 @@ func (m *Manager) extractImportName(node *types.ASTNode) string {
 			return path
 		}
 	}
-	
+
 	return "unknown"
 }
 
@@ -629,29 +629,29 @@ func isValidIdentifier(s string) bool {
 	if s == "" {
 		return false
 	}
-	
+
 	// Remove common symbols
 	s = strings.TrimSuffix(s, "(")
 	s = strings.TrimSuffix(s, "{")
 	s = strings.TrimSuffix(s, ":")
 	s = strings.TrimSuffix(s, ";")
-	
+
 	// Check if it looks like an identifier
 	if len(s) == 0 {
 		return false
 	}
-	
+
 	// Simple heuristic: starts with letter or underscore, contains only alphanumeric and underscore
 	first := s[0]
 	if !((first >= 'a' && first <= 'z') || (first >= 'A' && first <= 'Z') || first == '_' || first == '$') {
 		return false
 	}
-	
+
 	for _, r := range s[1:] {
 		if !((r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '_' || r == '$') {
 			return false
 		}
 	}
-	
+
 	return true
 }

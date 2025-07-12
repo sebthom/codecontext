@@ -40,7 +40,7 @@ func TestNewCompactController(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			controller := NewCompactController(tt.config)
-			
+
 			if controller == nil {
 				t.Fatal("NewCompactController returned nil")
 			}
@@ -86,7 +86,7 @@ func TestNewCompactController(t *testing.T) {
 
 func TestDefaultCompactConfig(t *testing.T) {
 	config := DefaultCompactConfig()
-	
+
 	if config == nil {
 		t.Fatal("DefaultCompactConfig returned nil")
 	}
@@ -143,21 +143,21 @@ func TestDefaultCompactConfig(t *testing.T) {
 
 func TestCompactController_RegisterStrategy(t *testing.T) {
 	controller := NewCompactController(nil)
-	
+
 	// Create a mock strategy
 	mockStrategy := &MockStrategy{
 		name:        "mock",
 		description: "Mock strategy for testing",
 	}
-	
+
 	controller.RegisterStrategy("mock", mockStrategy)
-	
+
 	// Verify strategy was registered
 	strategy, exists := controller.GetStrategy("mock")
 	if !exists {
 		t.Error("Expected mock strategy to be registered")
 	}
-	
+
 	if strategy != mockStrategy {
 		t.Error("Retrieved strategy should be the same instance")
 	}
@@ -165,20 +165,20 @@ func TestCompactController_RegisterStrategy(t *testing.T) {
 
 func TestCompactController_ListStrategies(t *testing.T) {
 	controller := NewCompactController(nil)
-	
+
 	strategies := controller.ListStrategies()
-	
+
 	if len(strategies) == 0 {
 		t.Error("Expected at least one strategy to be listed")
 	}
-	
+
 	// Check that strategies are sorted
 	for i := 1; i < len(strategies); i++ {
 		if strategies[i-1] > strategies[i] {
 			t.Error("Strategies should be sorted alphabetically")
 		}
 	}
-	
+
 	// Check that default strategies are present
 	expectedStrategies := map[string]bool{
 		"relevance":  true,
@@ -188,13 +188,13 @@ func TestCompactController_ListStrategies(t *testing.T) {
 		"hybrid":     true,
 		"adaptive":   true,
 	}
-	
+
 	for _, strategy := range strategies {
 		if expectedStrategies[strategy] {
 			delete(expectedStrategies, strategy)
 		}
 	}
-	
+
 	if len(expectedStrategies) > 0 {
 		t.Errorf("Missing expected strategies: %v", expectedStrategies)
 	}
@@ -202,10 +202,10 @@ func TestCompactController_ListStrategies(t *testing.T) {
 
 func TestCompactController_Compact(t *testing.T) {
 	controller := NewCompactController(nil)
-	
+
 	// Create test graph
 	testGraph := createTestCodeGraph()
-	
+
 	tests := []struct {
 		name     string
 		request  *CompactRequest
@@ -311,7 +311,7 @@ func TestCompactController_Compact(t *testing.T) {
 func TestCompactController_CompactMultiple(t *testing.T) {
 	controller := NewCompactController(nil)
 	testGraph := createTestCodeGraph()
-	
+
 	requests := []*CompactRequest{
 		{
 			Graph:    testGraph,
@@ -329,28 +329,28 @@ func TestCompactController_CompactMultiple(t *testing.T) {
 			MaxSize:  3,
 		},
 	}
-	
+
 	ctx := context.Background()
 	results, err := controller.CompactMultiple(ctx, requests)
-	
+
 	if err != nil {
 		t.Fatalf("CompactMultiple failed: %v", err)
 	}
-	
+
 	if len(results) != len(requests) {
 		t.Errorf("Expected %d results, got %d", len(requests), len(results))
 	}
-	
+
 	for i, result := range results {
 		if result == nil {
 			t.Errorf("Result %d is nil", i)
 			continue
 		}
-		
+
 		if result.CompactedGraph == nil {
 			t.Errorf("Result %d has nil compacted graph", i)
 		}
-		
+
 		if result.Strategy == "" {
 			t.Errorf("Result %d has empty strategy", i)
 		}
@@ -360,37 +360,37 @@ func TestCompactController_CompactMultiple(t *testing.T) {
 func TestCompactController_AnalyzeCompactionPotential(t *testing.T) {
 	controller := NewCompactController(nil)
 	testGraph := createTestCodeGraph()
-	
+
 	analysis := controller.AnalyzeCompactionPotential(testGraph)
-	
+
 	if analysis == nil {
 		t.Fatal("AnalyzeCompactionPotential returned nil")
 	}
-	
+
 	if analysis.TotalFiles != len(testGraph.Files) {
 		t.Errorf("Expected TotalFiles %d, got %d", len(testGraph.Files), analysis.TotalFiles)
 	}
-	
+
 	if analysis.TotalSymbols != len(testGraph.Symbols) {
 		t.Errorf("Expected TotalSymbols %d, got %d", len(testGraph.Symbols), analysis.TotalSymbols)
 	}
-	
+
 	if analysis.TotalNodes != len(testGraph.Nodes) {
 		t.Errorf("Expected TotalNodes %d, got %d", len(testGraph.Nodes), analysis.TotalNodes)
 	}
-	
+
 	if analysis.TotalEdges != len(testGraph.Edges) {
 		t.Errorf("Expected TotalEdges %d, got %d", len(testGraph.Edges), analysis.TotalEdges)
 	}
-	
+
 	if len(analysis.Strategies) == 0 {
 		t.Error("Expected strategy analyses")
 	}
-	
+
 	if analysis.RecommendedStrategy == "" {
 		t.Error("Expected recommended strategy")
 	}
-	
+
 	if analysis.MaxCompressionRatio < 0 || analysis.MaxCompressionRatio > 1 {
 		t.Errorf("Invalid compression ratio: %f", analysis.MaxCompressionRatio)
 	}
@@ -398,22 +398,22 @@ func TestCompactController_AnalyzeCompactionPotential(t *testing.T) {
 
 func TestCompactController_GetMetrics(t *testing.T) {
 	controller := NewCompactController(nil)
-	
+
 	metrics := controller.GetMetrics()
-	
+
 	if metrics == nil {
 		t.Fatal("GetMetrics returned nil")
 	}
-	
+
 	if metrics.StrategiesUsed == nil {
 		t.Error("StrategiesUsed should be initialized")
 	}
-	
+
 	// Initial metrics should be empty
 	if metrics.TotalCompactions != 0 {
 		t.Error("Expected TotalCompactions to be 0 initially")
 	}
-	
+
 	if metrics.CompressionRatio != 0 {
 		t.Error("Expected CompressionRatio to be 0 initially")
 	}
@@ -421,24 +421,24 @@ func TestCompactController_GetMetrics(t *testing.T) {
 
 func TestCompactController_ResetMetrics(t *testing.T) {
 	controller := NewCompactController(nil)
-	
+
 	// Set some metrics
 	controller.metrics.TotalCompactions = 10
 	controller.metrics.CompressionRatio = 0.5
 	controller.metrics.StrategiesUsed["test"] = 5
-	
+
 	// Reset metrics
 	controller.ResetMetrics()
-	
+
 	// Verify reset
 	if controller.metrics.TotalCompactions != 0 {
 		t.Error("Expected TotalCompactions to be reset to 0")
 	}
-	
+
 	if controller.metrics.CompressionRatio != 0 {
 		t.Error("Expected CompressionRatio to be reset to 0")
 	}
-	
+
 	if len(controller.metrics.StrategiesUsed) != 0 {
 		t.Error("Expected StrategiesUsed to be reset")
 	}
@@ -448,32 +448,32 @@ func TestCompactController_AdaptiveSelection(t *testing.T) {
 	config := DefaultCompactConfig()
 	config.AdaptiveEnabled = true
 	controller := NewCompactController(config)
-	
+
 	// Create a large graph to trigger adaptive selection
 	largeGraph := createLargeTestGraph()
-	
+
 	request := &CompactRequest{
 		Graph:   largeGraph,
 		MaxSize: 10,
 		// No strategy specified - should trigger adaptive selection
 	}
-	
+
 	ctx := context.Background()
 	result, err := controller.Compact(ctx, request)
-	
+
 	if err != nil {
 		t.Fatalf("Adaptive compaction failed: %v", err)
 	}
-	
+
 	if result == nil {
 		t.Fatal("Expected result")
 	}
-	
+
 	// Should have triggered adaptive strategy selection
 	if controller.metrics.AdaptiveTriggers == 0 {
 		t.Error("Expected adaptive triggers to be incremented")
 	}
-	
+
 	// Should have metadata about adaptive choice
 	if adaptiveChoice, exists := result.Metadata["adaptive_choice"]; !exists {
 		t.Error("Expected adaptive_choice in metadata")
@@ -619,13 +619,13 @@ func createTestCodeGraph() *types.CodeGraph {
 
 func createLargeTestGraph() *types.CodeGraph {
 	graph := createTestCodeGraph()
-	
+
 	// Add many more files to make it "large"
 	for i := 3; i <= 100; i++ {
 		fileName := fmt.Sprintf("file%d.ts", i)
 		symbolId := types.SymbolId(fmt.Sprintf("symbol%d", i))
 		nodeId := types.NodeId(fmt.Sprintf("node%d", i))
-		
+
 		graph.Files[fileName] = &types.FileNode{
 			Path:        fileName,
 			Language:    "typescript",
@@ -636,7 +636,7 @@ func createLargeTestGraph() *types.CodeGraph {
 			Symbols:     []types.SymbolId{symbolId},
 			Imports:     []*types.Import{},
 		}
-		
+
 		graph.Symbols[symbolId] = &types.Symbol{
 			Id:   symbolId,
 			Name: fmt.Sprintf("Symbol%d", i),
@@ -649,18 +649,18 @@ func createLargeTestGraph() *types.CodeGraph {
 			},
 			Language: "typescript",
 		}
-		
+
 		graph.Nodes[nodeId] = &types.GraphNode{
 			Id:    nodeId,
 			Type:  "file",
 			Label: fileName,
 		}
 	}
-	
+
 	// Update metadata
 	graph.Metadata.TotalFiles = len(graph.Files)
 	graph.Metadata.TotalSymbols = len(graph.Symbols)
-	
+
 	return graph
 }
 
@@ -669,16 +669,16 @@ func createLargeTestGraph() *types.CodeGraph {
 func BenchmarkCompactController_Compact(b *testing.B) {
 	controller := NewCompactController(nil)
 	testGraph := createTestCodeGraph()
-	
+
 	request := &CompactRequest{
 		Graph:    testGraph,
 		Strategy: "relevance",
 		MaxSize:  5,
 	}
-	
+
 	ctx := context.Background()
 	b.ResetTimer()
-	
+
 	for i := 0; i < b.N; i++ {
 		controller.Compact(ctx, request)
 	}
@@ -687,16 +687,16 @@ func BenchmarkCompactController_Compact(b *testing.B) {
 func BenchmarkCompactController_CompactMultiple(b *testing.B) {
 	controller := NewCompactController(nil)
 	testGraph := createTestCodeGraph()
-	
+
 	requests := []*CompactRequest{
 		{Graph: testGraph, Strategy: "relevance", MaxSize: 5},
 		{Graph: testGraph, Strategy: "frequency", MaxSize: 8},
 		{Graph: testGraph, Strategy: "size", MaxSize: 3},
 	}
-	
+
 	ctx := context.Background()
 	b.ResetTimer()
-	
+
 	for i := 0; i < b.N; i++ {
 		controller.CompactMultiple(ctx, requests)
 	}
@@ -705,9 +705,9 @@ func BenchmarkCompactController_CompactMultiple(b *testing.B) {
 func BenchmarkCompactController_AnalyzeCompactionPotential(b *testing.B) {
 	controller := NewCompactController(nil)
 	testGraph := createLargeTestGraph()
-	
+
 	b.ResetTimer()
-	
+
 	for i := 0; i < b.N; i++ {
 		controller.AnalyzeCompactionPotential(testGraph)
 	}

@@ -30,12 +30,12 @@ func init() {
 
 func executeCompaction(cmd *cobra.Command) error {
 	start := time.Now()
-	
+
 	level, _ := cmd.Flags().GetString("level")
 	task, _ := cmd.Flags().GetString("task")
 	tokens, _ := cmd.Flags().GetInt("tokens")
 	preview, _ := cmd.Flags().GetBool("preview")
-	
+
 	if viper.GetBool("verbose") {
 		fmt.Println("🔧 Starting context compaction...")
 		fmt.Printf("   Level: %s\n", level)
@@ -49,17 +49,17 @@ func executeCompaction(cmd *cobra.Command) error {
 			fmt.Println("   Mode: Preview only")
 		}
 	}
-	
+
 	// TODO: Implement actual compaction logic
 	// This will use the Compact Controller
-	
+
 	// Simulate compaction results
 	originalTokens := 150000
 	compactedTokens := int(float64(originalTokens) * getReductionFactor(level))
 	reductionPercent := float64(originalTokens-compactedTokens) / float64(originalTokens) * 100
-	
+
 	duration := time.Since(start)
-	
+
 	if preview {
 		fmt.Printf("📊 Compaction Preview:\n")
 		fmt.Printf("   Original tokens: %d\n", originalTokens)
@@ -73,7 +73,7 @@ func executeCompaction(cmd *cobra.Command) error {
 		fmt.Printf("   Token reduction: %.1f%% (%d → %d)\n", reductionPercent, originalTokens, compactedTokens)
 		fmt.Printf("   Quality score: %.2f\n", getQualityScore(level))
 	}
-	
+
 	return nil
 }
 

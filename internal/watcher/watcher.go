@@ -21,7 +21,7 @@ type FileWatcher struct {
 	debounce   time.Duration
 	changes    chan FileChange
 	done       chan struct{}
-	
+
 	// Configuration
 	excludePatterns []string
 	includeExts     []string
@@ -217,7 +217,7 @@ func (fw *FileWatcher) processChanges(ctx context.Context) {
 			return
 		case change := <-fw.changes:
 			pendingChanges = append(pendingChanges, change)
-			
+
 			// Reset debounce timer
 			timer.Reset(fw.debounce)
 
@@ -236,9 +236,9 @@ func (fw *FileWatcher) processChanges(ctx context.Context) {
 // processFileChanges performs incremental analysis on changed files
 func (fw *FileWatcher) processFileChanges(changes []FileChange) error {
 	start := time.Now()
-	
+
 	fmt.Printf("🔄 Processing %d file changes...\n", len(changes))
-	
+
 	// Group changes by type
 	changedFiles := make(map[string]string)
 	for _, change := range changes {
@@ -264,7 +264,7 @@ func (fw *FileWatcher) processFileChanges(changes []FileChange) error {
 	duration := time.Since(start)
 	fmt.Printf("✅ Context map updated in %v\n", duration)
 	fmt.Printf("   Files processed: %d\n", len(changedFiles))
-	
+
 	return nil
 }
 

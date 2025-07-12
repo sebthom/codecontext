@@ -26,28 +26,28 @@ type Config struct {
 	EnableStructuralDiff  bool          `json:"enable_structural_diff"`
 	EnableRenameDetection bool          `json:"enable_rename_detection"`
 	EnableDepTracking     bool          `json:"enable_dep_tracking"`
-	SimilarityThreshold   float64       `json:"similarity_threshold"`   // 0.0-1.0
-	RenameThreshold       float64       `json:"rename_threshold"`       // 0.0-1.0
-	MaxDiffDepth          int           `json:"max_diff_depth"`         // Maximum AST depth to diff
-	Timeout               time.Duration `json:"timeout"`                // Per-diff timeout
+	SimilarityThreshold   float64       `json:"similarity_threshold"` // 0.0-1.0
+	RenameThreshold       float64       `json:"rename_threshold"`     // 0.0-1.0
+	MaxDiffDepth          int           `json:"max_diff_depth"`       // Maximum AST depth to diff
+	Timeout               time.Duration `json:"timeout"`              // Per-diff timeout
 	EnableCaching         bool          `json:"enable_caching"`
 	CacheTTL              time.Duration `json:"cache_ttl"`
 }
 
 // DiffResult represents the result of comparing two code structures
 type DiffResult struct {
-	Type           DiffType                 `json:"type"`
-	FilePath       string                   `json:"file_path"`
-	Language       string                   `json:"language"`
-	Changes        []Change                 `json:"changes"`
-	Additions      []Addition               `json:"additions"`
-	Deletions      []Deletion               `json:"deletions"`
-	Modifications  []Modification           `json:"modifications"`
-	Renames        []Rename                 `json:"renames"`
-	Dependencies   []DependencyChange       `json:"dependencies"`
-	Metrics        DiffMetrics              `json:"metrics"`
-	Timestamp      time.Time                `json:"timestamp"`
-	ComputeTime    time.Duration            `json:"compute_time"`
+	Type          DiffType           `json:"type"`
+	FilePath      string             `json:"file_path"`
+	Language      string             `json:"language"`
+	Changes       []Change           `json:"changes"`
+	Additions     []Addition         `json:"additions"`
+	Deletions     []Deletion         `json:"deletions"`
+	Modifications []Modification     `json:"modifications"`
+	Renames       []Rename           `json:"renames"`
+	Dependencies  []DependencyChange `json:"dependencies"`
+	Metrics       DiffMetrics        `json:"metrics"`
+	Timestamp     time.Time          `json:"timestamp"`
+	ComputeTime   time.Duration      `json:"compute_time"`
 }
 
 // DiffType represents the type of diff operation
@@ -61,25 +61,25 @@ const (
 
 // Change represents a single change in the diff
 type Change struct {
-	Type        ChangeType      `json:"type"`
-	Path        string          `json:"path"`        // AST path to the change
-	OldValue    interface{}     `json:"old_value"`
-	NewValue    interface{}     `json:"new_value"`
-	Position    Position        `json:"position"`
-	Impact      ImpactLevel     `json:"impact"`
-	Context     ChangeContext   `json:"context"`
-	Metadata    map[string]interface{} `json:"metadata"`
+	Type     ChangeType             `json:"type"`
+	Path     string                 `json:"path"` // AST path to the change
+	OldValue interface{}            `json:"old_value"`
+	NewValue interface{}            `json:"new_value"`
+	Position Position               `json:"position"`
+	Impact   ImpactLevel            `json:"impact"`
+	Context  ChangeContext          `json:"context"`
+	Metadata map[string]interface{} `json:"metadata"`
 }
 
 // ChangeType represents the type of change
 type ChangeType string
 
 const (
-	ChangeTypeAdd      ChangeType = "add"
-	ChangeTypeDelete   ChangeType = "delete"
-	ChangeTypeModify   ChangeType = "modify"
-	ChangeTypeMove     ChangeType = "move"
-	ChangeTypeRename   ChangeType = "rename"
+	ChangeTypeAdd    ChangeType = "add"
+	ChangeTypeDelete ChangeType = "delete"
+	ChangeTypeModify ChangeType = "modify"
+	ChangeTypeMove   ChangeType = "move"
+	ChangeTypeRename ChangeType = "rename"
 )
 
 // ImpactLevel represents the impact level of a change
@@ -101,13 +101,13 @@ type Position struct {
 
 // ChangeContext provides context around a change
 type ChangeContext struct {
-	Function    string   `json:"function"`
-	Class       string   `json:"class"`
-	Module      string   `json:"module"`
-	Scope       string   `json:"scope"`
-	Imports     []string `json:"imports"`
-	Exports     []string `json:"exports"`
-	Tags        []string `json:"tags"`
+	Function string   `json:"function"`
+	Class    string   `json:"class"`
+	Module   string   `json:"module"`
+	Scope    string   `json:"scope"`
+	Imports  []string `json:"imports"`
+	Exports  []string `json:"exports"`
+	Tags     []string `json:"tags"`
 }
 
 // Addition represents an added element
@@ -132,13 +132,12 @@ type Modification struct {
 // Rename represents a renamed element
 type Rename struct {
 	Change
-	OldName      string        `json:"old_name"`
-	NewName      string        `json:"new_name"`
-	Symbol       *types.Symbol `json:"symbol"`
-	Confidence   float64       `json:"confidence"`
-	Reason       string        `json:"reason"`
+	OldName    string        `json:"old_name"`
+	NewName    string        `json:"new_name"`
+	Symbol     *types.Symbol `json:"symbol"`
+	Confidence float64       `json:"confidence"`
+	Reason     string        `json:"reason"`
 }
-
 
 // DiffMetrics provides metrics about the diff operation
 type DiffMetrics struct {
@@ -456,16 +455,16 @@ func (de *DiffEngine) calculateSymbolMetrics(oldSymbol, newSymbol *types.Symbol,
 func (de *DiffEngine) calculateRenameConfidence(oldSymbol, newSymbol *types.Symbol) float64 {
 	// Compare signatures
 	sigSimilarity := de.calculateStringSimilarity(oldSymbol.Signature, newSymbol.Signature)
-	
+
 	// Compare documentation
 	docSimilarity := de.calculateStringSimilarity(oldSymbol.Documentation, newSymbol.Documentation)
-	
+
 	// Compare location (relative position in file)
 	locSimilarity := de.calculateLocationSimilarity(oldSymbol.Location, newSymbol.Location)
-	
+
 	// Weighted average
 	confidence := (sigSimilarity*0.5 + docSimilarity*0.3 + locSimilarity*0.2)
-	
+
 	return confidence
 }
 
@@ -477,18 +476,18 @@ func (de *DiffEngine) calculateStringSimilarity(s1, s2 string) float64 {
 	if s1 == "" || s2 == "" {
 		return 0.0
 	}
-	
+
 	// Use Levenshtein distance-based similarity
 	maxLen := max(len(s1), len(s2))
 	distance := de.levenshteinDistance(s1, s2)
-	
+
 	return 1.0 - float64(distance)/float64(maxLen)
 }
 
 // calculateLocationSimilarity calculates similarity based on symbol locations
 func (de *DiffEngine) calculateLocationSimilarity(loc1, loc2 types.Location) float64 {
 	lineDiff := abs(loc1.StartLine - loc2.StartLine)
-	
+
 	// Similarity decreases with line distance
 	if lineDiff == 0 {
 		return 1.0
@@ -527,12 +526,12 @@ func (de *DiffEngine) calculateSignatureImpact(oldSig, newSig string) ImpactLeve
 	if strings.Contains(oldSig, "public") && !strings.Contains(newSig, "public") {
 		return ImpactCritical
 	}
-	
+
 	// Parameter changes are medium to high impact
 	if strings.Count(oldSig, ",") != strings.Count(newSig, ",") {
 		return ImpactHigh
 	}
-	
+
 	return ImpactMedium
 }
 
@@ -552,16 +551,16 @@ func (de *DiffEngine) calculateSimilarity(oldFile, newFile *types.FileInfo) floa
 	if oldFile.Lines == 0 && newFile.Lines == 0 {
 		return 1.0
 	}
-	
+
 	sizeDiff := abs(int(oldFile.Size - newFile.Size))
 	lineDiff := abs(oldFile.Lines - newFile.Lines)
-	
+
 	maxSize := max(int(oldFile.Size), int(newFile.Size))
 	maxLines := max(oldFile.Lines, newFile.Lines)
-	
+
 	sizeSim := 1.0 - float64(sizeDiff)/float64(maxSize)
 	lineSim := 1.0 - float64(lineDiff)/float64(maxLines)
-	
+
 	return (sizeSim + lineSim) / 2.0
 }
 
@@ -574,7 +573,7 @@ func (de *DiffEngine) calculateSemanticDistance(oldFile, newFile *types.FileInfo
 func (de *DiffEngine) calculateComplexity(result *DiffResult) float64 {
 	// Complexity based on number and types of changes
 	complexity := 0.0
-	
+
 	for _, change := range result.Changes {
 		switch change.Impact {
 		case ImpactLow:
@@ -587,19 +586,19 @@ func (de *DiffEngine) calculateComplexity(result *DiffResult) float64 {
 			complexity += 5.0
 		}
 	}
-	
+
 	// Normalize by total changes
 	if len(result.Changes) > 0 {
 		complexity /= float64(len(result.Changes))
 	}
-	
+
 	return complexity
 }
 
 func (de *DiffEngine) calculateSymbolSimilarity(oldSymbol, newSymbol *types.Symbol) float64 {
 	nameSim := de.calculateStringSimilarity(oldSymbol.Name, newSymbol.Name)
 	sigSim := de.calculateStringSimilarity(oldSymbol.Signature, newSymbol.Signature)
-	
+
 	return (nameSim + sigSim) / 2.0
 }
 
@@ -629,24 +628,24 @@ func (de *DiffEngine) levenshteinDistance(s1, s2 string) int {
 	if len(s2) == 0 {
 		return len(s1)
 	}
-	
+
 	matrix := make([][]int, len(s1)+1)
 	for i := range matrix {
 		matrix[i] = make([]int, len(s2)+1)
 		matrix[i][0] = i
 	}
-	
+
 	for j := 0; j <= len(s2); j++ {
 		matrix[0][j] = j
 	}
-	
+
 	for i := 1; i <= len(s1); i++ {
 		for j := 1; j <= len(s2); j++ {
 			cost := 0
 			if s1[i-1] != s2[j-1] {
 				cost = 1
 			}
-			
+
 			matrix[i][j] = min3(
 				matrix[i-1][j]+1,      // deletion
 				matrix[i][j-1]+1,      // insertion
@@ -654,7 +653,7 @@ func (de *DiffEngine) levenshteinDistance(s1, s2 string) int {
 			)
 		}
 	}
-	
+
 	return matrix[len(s1)][len(s2)]
 }
 

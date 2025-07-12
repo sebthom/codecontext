@@ -48,9 +48,9 @@ func NewShutdownManager(config *ShutdownConfig) *ShutdownManager {
 			EnableLogging:   true,
 		}
 	}
-	
+
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	sm := &ShutdownManager{
 		handlers:     make([]ShutdownHandler, 0),
 		timeout:      config.GracefulTimeout,
@@ -59,13 +59,13 @@ func NewShutdownManager(config *ShutdownConfig) *ShutdownManager {
 		cancel:       cancel,
 		completed:    make(chan struct{}),
 	}
-	
+
 	// Register signal handlers
 	signal.Notify(sm.shutdownChan, config.Signals...)
-	
+
 	// Start shutdown listener
 	go sm.listenForShutdown(config.EnableLogging)
-	
+
 	return sm
 }
 
@@ -73,14 +73,14 @@ func NewShutdownManager(config *ShutdownConfig) *ShutdownManager {
 func (sm *ShutdownManager) RegisterHandler(name string, priority int, timeout time.Duration, handler func() error) {
 	sm.mutex.Lock()
 	defer sm.mutex.Unlock()
-	
+
 	sm.handlers = append(sm.handlers, ShutdownHandler{
 		Name:     name,
 		Priority: priority,
 		Handler:  handler,
 		Timeout:  timeout,
 	})
-	
+
 	// Sort handlers by priority
 	sm.sortHandlers()
 }
@@ -123,13 +123,13 @@ func (sm *ShutdownManager) IsShuttingDown() bool {
 
 func (sm *ShutdownManager) listenForShutdown(enableLogging bool) {
 	defer close(sm.completed)
-	
+
 	sig := <-sm.shutdownChan
-	
+
 	if enableLogging {
 		fmt.Printf("\n🛑 Received signal %v, initiating graceful shutdown...\n", sig)
 	}
-	
+
 	sm.shutdownOnce.Do(func() {
 		sm.performShutdown(enableLogging)
 	})
@@ -138,21 +138,21 @@ func (sm *ShutdownManager) listenForShutdown(enableLogging bool) {
 func (sm *ShutdownManager) performShutdown(enableLogging bool) {
 	// Cancel the context to signal all operations to stop
 	sm.cancel()
-	
+
 	// Create timeout context for the entire shutdown process
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), sm.timeout)
 	defer shutdownCancel()
-	
+
 	if enableLogging {
 		fmt.Printf("⏳ Running %d shutdown handlers (timeout: %v)...\n", len(sm.handlers), sm.timeout)
 	}
-	
+
 	// Execute shutdown handlers
 	sm.mutex.RLock()
 	handlers := make([]ShutdownHandler, len(sm.handlers))
 	copy(handlers, sm.handlers)
 	sm.mutex.RUnlock()
-	
+
 	for i, handler := range handlers {
 		select {
 		case <-shutdownCtx.Done():
@@ -164,7 +164,7 @@ func (sm *ShutdownManager) performShutdown(enableLogging bool) {
 			sm.executeHandler(handler, enableLogging)
 		}
 	}
-	
+
 	if enableLogging {
 		fmt.Println("✅ Graceful shutdown completed")
 	}
@@ -174,17 +174,17 @@ func (sm *ShutdownManager) executeHandler(handler ShutdownHandler, enableLogging
 	if enableLogging {
 		fmt.Printf("🔄 Executing shutdown handler: %s\n", handler.Name)
 	}
-	
+
 	// Create timeout context for this handler
 	ctx, cancel := context.WithTimeout(context.Background(), handler.Timeout)
 	defer cancel()
-	
+
 	// Execute handler in goroutine to respect timeout
 	done := make(chan error, 1)
 	go func() {
 		done <- handler.Handler()
 	}()
-	
+
 	select {
 	case err := <-done:
 		if err != nil {
@@ -228,15 +228,15 @@ func NewWatchModeShutdown(watchManager *WatchManager) *WatchModeShutdown {
 		Signals:         []os.Signal{syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP},
 		EnableLogging:   true,
 	}
-	
+
 	ws := &WatchModeShutdown{
 		manager:      NewShutdownManager(config),
 		watchManager: watchManager,
 	}
-	
+
 	// Register watch mode specific handlers
 	ws.registerHandlers()
-	
+
 	return ws
 }
 
@@ -270,26 +270,26 @@ func (ws *WatchModeShutdown) registerHandlers() {
 		}
 		return nil
 	})
-	
+
 	// Process pending changes
 	ws.manager.RegisterHandler("pending_changes", 20, 5*time.Second, func() error {
 		if ws.watchManager.analyzer != nil {
 			// Process any pending changes
 			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 			defer cancel()
-			
+
 			// This would process any pending changes in the analyzer
 			// For now, we'll just ensure the analyzer is in a clean state
 			_ = ctx // Use the context in real implementation
 		}
 		return nil
 	})
-	
+
 	// Generate final output
 	ws.manager.RegisterHandler("final_output", 30, 3*time.Second, func() error {
 		return ws.watchManager.generateOutput()
 	})
-	
+
 	// Save cache state
 	ws.manager.RegisterHandler("cache_save", 40, 2*time.Second, func() error {
 		if ws.watchManager.cache != nil {
@@ -297,13 +297,13 @@ func (ws *WatchModeShutdown) registerHandlers() {
 		}
 		return nil
 	})
-	
+
 	// Print final statistics
 	ws.manager.RegisterHandler("final_stats", 90, 1*time.Second, func() error {
 		ws.watchManager.PrintStats()
 		return nil
 	})
-	
+
 	// Cleanup resources (lowest priority)
 	ws.manager.RegisterHandler("cleanup", 100, 1*time.Second, func() error {
 		ws.watchManager.Cleanup()
@@ -365,12 +365,12 @@ func (hc *HealthChecker) AddCheck(name string, check func() error) {
 func (hc *HealthChecker) RunChecks() map[string]error {
 	hc.mutex.RLock()
 	defer hc.mutex.RUnlock()
-	
+
 	results := make(map[string]error)
 	for name, check := range hc.checks {
 		results[name] = check()
 	}
-	
+
 	return results
 }
 
@@ -384,24 +384,24 @@ func SetupGracefulShutdown() *ShutdownManager {
 		Signals:         []os.Signal{syscall.SIGINT, syscall.SIGTERM},
 		EnableLogging:   true,
 	}
-	
+
 	sm := NewShutdownManager(config)
-	
+
 	// Add common handlers
 	sm.RegisterHandler("save_state", 10, 5*time.Second, func() error {
 		// Save application state
 		return nil
 	})
-	
+
 	sm.RegisterHandler("close_connections", 20, 3*time.Second, func() error {
 		// Close database connections, etc.
 		return nil
 	})
-	
+
 	sm.RegisterHandler("cleanup_temp", 90, 2*time.Second, func() error {
 		// Clean up temporary files
 		return nil
 	})
-	
+
 	return sm
 }

@@ -21,27 +21,17 @@ $(BUILD_DIR):
 build: $(BUILD_DIR)
 	go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/codecontext
 
-# Build for multiple platforms
+# Build for multiple platforms (CGO-enabled builds for Tree-sitter support)
 build-all: $(BUILD_DIR)
-	# macOS (Intel)
-	GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-amd64 ./cmd/codecontext
-	# macOS (Apple Silicon)
-	GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-arm64 ./cmd/codecontext
-	# Linux (Intel)
-	GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-amd64 ./cmd/codecontext
-	# Linux (ARM)
-	GOOS=linux GOARCH=arm64 go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-arm64 ./cmd/codecontext
-	# Windows (Intel)
-	GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-windows-amd64.exe ./cmd/codecontext
+	# macOS (current architecture - native build)
+	go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-$(shell go env GOARCH) ./cmd/codecontext
+	# Note: Cross-compilation with CGO for Tree-sitter requires platform-specific build environments
+	# For production releases, use GitHub Actions or platform-specific builders
 
 # Create release tarballs
 release: build-all
 	cd $(BUILD_DIR) && \
-	tar -czf $(BINARY_NAME)-$(VERSION)-darwin-amd64.tar.gz $(BINARY_NAME)-darwin-amd64 && \
-	tar -czf $(BINARY_NAME)-$(VERSION)-darwin-arm64.tar.gz $(BINARY_NAME)-darwin-arm64 && \
-	tar -czf $(BINARY_NAME)-$(VERSION)-linux-amd64.tar.gz $(BINARY_NAME)-linux-amd64 && \
-	tar -czf $(BINARY_NAME)-$(VERSION)-linux-arm64.tar.gz $(BINARY_NAME)-linux-arm64 && \
-	zip $(BINARY_NAME)-$(VERSION)-windows-amd64.zip $(BINARY_NAME)-windows-amd64.exe
+	tar -czf $(BINARY_NAME)-$(VERSION)-darwin-$(shell go env GOARCH).tar.gz $(BINARY_NAME)-darwin-$(shell go env GOARCH)
 
 # Generate checksums for release files
 checksums: release
@@ -73,17 +63,14 @@ fmt:
 lint:
 	golangci-lint run
 
-# Prepare for Homebrew (build universal binary for macOS)
+# Prepare for Homebrew (native build only - Homebrew will build from source)
 homebrew: $(BUILD_DIR)
-	# Build both architectures
-	GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-amd64 ./cmd/codecontext
-	GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-arm64 ./cmd/codecontext
-	# Create universal binary using lipo
-	lipo -create -output $(BUILD_DIR)/$(BINARY_NAME) $(BUILD_DIR)/$(BINARY_NAME)-amd64 $(BUILD_DIR)/$(BINARY_NAME)-arm64
+	# Build for current platform
+	go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/codecontext
 	# Create tarball for Homebrew
-	cd $(BUILD_DIR) && tar -czf $(BINARY_NAME)-$(VERSION)-darwin-universal.tar.gz $(BINARY_NAME)
+	cd $(BUILD_DIR) && tar -czf $(BINARY_NAME)-$(VERSION)-darwin-$(shell go env GOARCH).tar.gz $(BINARY_NAME)
 	# Generate checksum
-	cd $(BUILD_DIR) && shasum -a 256 $(BINARY_NAME)-$(VERSION)-darwin-universal.tar.gz > $(BINARY_NAME)-$(VERSION)-darwin-universal.tar.gz.sha256
+	cd $(BUILD_DIR) && shasum -a 256 $(BINARY_NAME)-$(VERSION)-darwin-$(shell go env GOARCH).tar.gz > $(BINARY_NAME)-$(VERSION)-darwin-$(shell go env GOARCH).tar.gz.sha256
 
 # Development build (with debug symbols)
 dev-build: $(BUILD_DIR)

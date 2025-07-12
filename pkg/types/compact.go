@@ -8,16 +8,16 @@ import (
 type CompactController interface {
 	// Command execution
 	ExecuteCommand(command string, context *CompactContext) (*CompactResult, error)
-	
+
 	// Predefined strategies
 	CompactMinimal() (*CompactResult, error)
 	CompactBalanced() (*CompactResult, error)
 	CompactAggressive() (*CompactResult, error)
-	
+
 	// Task-specific compaction
 	CompactForTask(task TaskType) (*CompactResult, error)
 	CompactToTokenLimit(maxTokens int) (*CompactResult, error)
-	
+
 	// Interactive features
 	PreviewCompaction(strategy CompactStrategy) (*CompactPreview, error)
 	UndoCompaction() error
@@ -34,8 +34,8 @@ type CompactCommand struct {
 
 // CompactParameters represents parameters for compaction
 type CompactParameters struct {
-	Level      string   `json:"level,omitempty"`      // "minimal", "balanced", "aggressive"
-	Task       string   `json:"task,omitempty"`       // "debugging", "refactoring", etc.
+	Level      string   `json:"level,omitempty"` // "minimal", "balanced", "aggressive"
+	Task       string   `json:"task,omitempty"`  // "debugging", "refactoring", etc.
 	MaxTokens  int      `json:"max_tokens,omitempty"`
 	FocusFiles []string `json:"focus_files,omitempty"`
 	Preserve   []string `json:"preserve,omitempty"`
@@ -44,37 +44,37 @@ type CompactParameters struct {
 
 // CompactResult represents the result of a compaction
 type CompactResult struct {
-	Id                string              `json:"id"`
-	OriginalTokens    int                 `json:"original_tokens"`
-	CompactedTokens   int                 `json:"compacted_tokens"`
-	ReductionPercent  float64             `json:"reduction_percent"`
-	PreservedSymbols  []*Symbol           `json:"preserved_symbols"`
-	RemovedSymbols    []*Symbol           `json:"removed_symbols"`
-	QualityScore      float64             `json:"quality_score"`
-	Reversible        bool                `json:"reversible"`
-	ExecutionTime     time.Duration       `json:"execution_time"`
-	Strategy          CompactStrategy     `json:"strategy"`
-	Metadata          map[string]interface{} `json:"metadata,omitempty"`
+	Id               string                 `json:"id"`
+	OriginalTokens   int                    `json:"original_tokens"`
+	CompactedTokens  int                    `json:"compacted_tokens"`
+	ReductionPercent float64                `json:"reduction_percent"`
+	PreservedSymbols []*Symbol              `json:"preserved_symbols"`
+	RemovedSymbols   []*Symbol              `json:"removed_symbols"`
+	QualityScore     float64                `json:"quality_score"`
+	Reversible       bool                   `json:"reversible"`
+	ExecutionTime    time.Duration          `json:"execution_time"`
+	Strategy         CompactStrategy        `json:"strategy"`
+	Metadata         map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // CompactPreview represents a preview of compaction
 type CompactPreview struct {
-	EstimatedTokens   int               `json:"estimated_tokens"`
-	EstimatedReduction float64          `json:"estimated_reduction"`
-	EstimatedQuality  float64           `json:"estimated_quality"`
-	WillPreserve      []string          `json:"will_preserve"`
-	WillRemove        []string          `json:"will_remove"`
-	Warnings          []string          `json:"warnings,omitempty"`
-	Strategy          CompactStrategy   `json:"strategy"`
+	EstimatedTokens    int             `json:"estimated_tokens"`
+	EstimatedReduction float64         `json:"estimated_reduction"`
+	EstimatedQuality   float64         `json:"estimated_quality"`
+	WillPreserve       []string        `json:"will_preserve"`
+	WillRemove         []string        `json:"will_remove"`
+	Warnings           []string        `json:"warnings,omitempty"`
+	Strategy           CompactStrategy `json:"strategy"`
 }
 
 // CompactHistory represents a compaction operation in history
 type CompactHistory struct {
-	Id        string           `json:"id"`
-	Command   CompactCommand   `json:"command"`
-	Result    CompactResult    `json:"result"`
-	Timestamp time.Time        `json:"timestamp"`
-	Reversed  bool             `json:"reversed"`
+	Id        string         `json:"id"`
+	Command   CompactCommand `json:"command"`
+	Result    CompactResult  `json:"result"`
+	Timestamp time.Time      `json:"timestamp"`
+	Reversed  bool           `json:"reversed"`
 }
 
 // CompactContext represents the context for compaction
@@ -111,7 +111,7 @@ var (
 		},
 		Description: "Optimize for debugging tasks",
 	}
-	
+
 	TaskTypeRefactoring = TaskType{
 		Name:             "refactoring",
 		PriorityPatterns: []string{"class", "interface", "function", "method"},
@@ -126,7 +126,7 @@ var (
 		},
 		Description: "Optimize for refactoring tasks",
 	}
-	
+
 	TaskTypeDocumentation = TaskType{
 		Name:             "documentation",
 		PriorityPatterns: []string{"interface", "type", "class", "export"},
@@ -153,13 +153,13 @@ type SymbolPattern struct {
 
 // CompactStrategy represents different compaction strategies
 type CompactStrategy struct {
-	Name           string                 `json:"name"`
-	TokenTarget    float64                `json:"token_target"`
-	PreserveRules  []CompactRule          `json:"preserve_rules"`
-	RemoveRules    []CompactRule          `json:"remove_rules"`
-	Priority       int                    `json:"priority"`
-	Description    string                 `json:"description"`
-	Metadata       map[string]interface{} `json:"metadata,omitempty"`
+	Name          string                 `json:"name"`
+	TokenTarget   float64                `json:"token_target"`
+	PreserveRules []CompactRule          `json:"preserve_rules"`
+	RemoveRules   []CompactRule          `json:"remove_rules"`
+	Priority      int                    `json:"priority"`
+	Description   string                 `json:"description"`
+	Metadata      map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // CompactRule represents a rule for compaction
@@ -188,7 +188,7 @@ var (
 		},
 		Description: "Minimal compaction - keep only essential code",
 	}
-	
+
 	CompactStrategyBalanced = CompactStrategy{
 		Name:        "balanced",
 		TokenTarget: 0.6,
@@ -202,7 +202,7 @@ var (
 		},
 		Description: "Balanced compaction - good compromise between size and completeness",
 	}
-	
+
 	CompactStrategyAggressive = CompactStrategy{
 		Name:        "aggressive",
 		TokenTarget: 0.15,

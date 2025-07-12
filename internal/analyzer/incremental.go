@@ -25,15 +25,15 @@ type IncrementalAnalyzer struct {
 
 // IncrementalConfig holds configuration for incremental analysis
 type IncrementalConfig struct {
-	EnableVGE          bool          `json:"enable_vge"`           // Enable Virtual Graph Engine
-	DiffAlgorithm      string        `json:"diff_algorithm"`       // Diffing algorithm to use
-	BatchSize          int           `json:"batch_size"`           // Batch size for changes
-	BatchTimeout       time.Duration `json:"batch_timeout"`        // Batch timeout
-	CacheEnabled       bool          `json:"cache_enabled"`        // Enable AST caching
-	MaxCacheSize       int           `json:"max_cache_size"`       // Maximum cached ASTs
-	ChangeDetection    string        `json:"change_detection"`     // "mtime", "hash", "content"
-	IncrementalDepth   int           `json:"incremental_depth"`    // How deep to analyze dependencies
-	ParallelProcessing bool          `json:"parallel_processing"`  // Enable parallel processing
+	EnableVGE          bool          `json:"enable_vge"`          // Enable Virtual Graph Engine
+	DiffAlgorithm      string        `json:"diff_algorithm"`      // Diffing algorithm to use
+	BatchSize          int           `json:"batch_size"`          // Batch size for changes
+	BatchTimeout       time.Duration `json:"batch_timeout"`       // Batch timeout
+	CacheEnabled       bool          `json:"cache_enabled"`       // Enable AST caching
+	MaxCacheSize       int           `json:"max_cache_size"`      // Maximum cached ASTs
+	ChangeDetection    string        `json:"change_detection"`    // "mtime", "hash", "content"
+	IncrementalDepth   int           `json:"incremental_depth"`   // How deep to analyze dependencies
+	ParallelProcessing bool          `json:"parallel_processing"` // Enable parallel processing
 }
 
 // FileChange represents a detected file change
@@ -62,11 +62,11 @@ const (
 
 // IncrementalResult represents the result of incremental analysis
 type IncrementalResult struct {
-	UpdatedGraph     *types.CodeGraph       `json:"updated_graph"`
-	ProcessedChanges []FileChange           `json:"processed_changes"`
-	ImpactAnalysis   *ImpactSummary         `json:"impact_analysis"`
-	Performance      *PerformanceMetrics    `json:"performance"`
-	Errors           []string               `json:"errors"`
+	UpdatedGraph     *types.CodeGraph    `json:"updated_graph"`
+	ProcessedChanges []FileChange        `json:"processed_changes"`
+	ImpactAnalysis   *ImpactSummary      `json:"impact_analysis"`
+	Performance      *PerformanceMetrics `json:"performance"`
+	Errors           []string            `json:"errors"`
 }
 
 // ImpactSummary summarizes the impact of changes
@@ -81,14 +81,14 @@ type ImpactSummary struct {
 
 // PerformanceMetrics tracks performance of incremental analysis
 type PerformanceMetrics struct {
-	TotalTime         time.Duration `json:"total_time"`
-	ChangeDetection   time.Duration `json:"change_detection"`
-	ASTGeneration     time.Duration `json:"ast_generation"`
-	DiffComputation   time.Duration `json:"diff_computation"`
-	GraphUpdate       time.Duration `json:"graph_update"`
-	FilesProcessed    int           `json:"files_processed"`
-	CacheHitRate      float64       `json:"cache_hit_rate"`
-	MemoryUsage       int64         `json:"memory_usage"`
+	TotalTime       time.Duration `json:"total_time"`
+	ChangeDetection time.Duration `json:"change_detection"`
+	ASTGeneration   time.Duration `json:"ast_generation"`
+	DiffComputation time.Duration `json:"diff_computation"`
+	GraphUpdate     time.Duration `json:"graph_update"`
+	FilesProcessed  int           `json:"files_processed"`
+	CacheHitRate    float64       `json:"cache_hit_rate"`
+	MemoryUsage     int64         `json:"memory_usage"`
 }
 
 // NewIncrementalAnalyzer creates a new incremental analyzer
@@ -162,11 +162,11 @@ func (ia *IncrementalAnalyzer) Initialize(graph *types.CodeGraph) error {
 // AnalyzeChanges analyzes a set of file changes incrementally
 func (ia *IncrementalAnalyzer) AnalyzeChanges(ctx context.Context, changedPaths []string) (*IncrementalResult, error) {
 	start := time.Now()
-	
+
 	result := &IncrementalResult{
 		ProcessedChanges: make([]FileChange, 0),
-		Errors:          make([]string, 0),
-		Performance:     &PerformanceMetrics{},
+		Errors:           make([]string, 0),
+		Performance:      &PerformanceMetrics{},
 	}
 
 	// Detect changes
@@ -202,7 +202,7 @@ func (ia *IncrementalAnalyzer) AnalyzeChanges(ctx context.Context, changedPaths 
 	// Update performance metrics
 	result.Performance.TotalTime = time.Since(start)
 	result.Performance.FilesProcessed = len(result.ProcessedChanges)
-	
+
 	// Get VGE metrics
 	vgeMetrics := ia.vge.GetMetrics()
 	result.Performance.MemoryUsage = vgeMetrics.ShadowMemoryBytes
@@ -295,7 +295,7 @@ func (ia *IncrementalAnalyzer) processFileChange(ctx context.Context, change Fil
 // processFileAdded processes a newly added file
 func (ia *IncrementalAnalyzer) processFileAdded(ctx context.Context, change FileChange, result *IncrementalResult) error {
 	astStart := time.Now()
-	
+
 	// Parse the new file
 	classification, err := ia.parser.ClassifyFile(change.Path)
 	if err != nil {
@@ -450,9 +450,9 @@ func (ia *IncrementalAnalyzer) processFileModified(ctx context.Context, change F
 		},
 		Timestamp: time.Now(),
 		Metadata: map[string]interface{}{
-			"diff":     diff,
+			"diff":                   diff,
 			"has_structural_changes": diff.StructuralChanges,
-			"similarity": diff.Similarity,
+			"similarity":             diff.Similarity,
 		},
 	}
 
@@ -521,11 +521,11 @@ func (ia *IncrementalAnalyzer) computeImpactSummary(changes []FileChange) *Impac
 
 	// Generate recommendations
 	if summary.HighImpactChanges > 0 {
-		summary.Recommendations = append(summary.Recommendations, 
+		summary.Recommendations = append(summary.Recommendations,
 			"High impact changes detected - review for breaking changes")
 	}
 	if summary.RiskScore > 2.0 {
-		summary.Recommendations = append(summary.Recommendations, 
+		summary.Recommendations = append(summary.Recommendations,
 			"High risk score - consider additional testing")
 	}
 
@@ -564,7 +564,7 @@ func (ia *IncrementalAnalyzer) cacheAST(filePath string, ast *types.AST) {
 	if !ia.config.CacheEnabled {
 		return
 	}
-	
+
 	// Simple cache size management
 	if len(ia.analysisCache) >= ia.config.MaxCacheSize {
 		// Remove oldest entry (simple FIFO)
@@ -573,7 +573,7 @@ func (ia *IncrementalAnalyzer) cacheAST(filePath string, ast *types.AST) {
 			break
 		}
 	}
-	
+
 	ia.analysisCache[filePath] = ast
 }
 

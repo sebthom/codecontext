@@ -16,43 +16,43 @@ import (
 // Config holds configuration for the persistent cache
 type Config struct {
 	Directory     string        `json:"directory"`
-	MaxSize       int           `json:"max_size"`        // Maximum number of cached items
-	TTL           time.Duration `json:"ttl"`             // Time to live for cache entries
-	EnableLRU     bool          `json:"enable_lru"`      // Enable LRU eviction
-	EnableMetrics bool          `json:"enable_metrics"`  // Enable metrics collection
-	Compression   bool          `json:"compression"`     // Enable compression (future)
+	MaxSize       int           `json:"max_size"`       // Maximum number of cached items
+	TTL           time.Duration `json:"ttl"`            // Time to live for cache entries
+	EnableLRU     bool          `json:"enable_lru"`     // Enable LRU eviction
+	EnableMetrics bool          `json:"enable_metrics"` // Enable metrics collection
+	Compression   bool          `json:"compression"`    // Enable compression (future)
 }
 
 // PersistentCache provides disk-backed caching for CodeGraph objects
 type PersistentCache struct {
-	config    *Config
-	items     map[string]*CacheItem
-	access    map[string]time.Time // For LRU tracking
-	mutex     sync.RWMutex
-	metrics   *CacheMetrics
+	config  *Config
+	items   map[string]*CacheItem
+	access  map[string]time.Time // For LRU tracking
+	mutex   sync.RWMutex
+	metrics *CacheMetrics
 }
 
 // CacheItem represents a cached item with metadata
 type CacheItem struct {
-	Key         string               `json:"key"`
-	Graph       *types.CodeGraph     `json:"graph"`
+	Key         string                 `json:"key"`
+	Graph       *types.CodeGraph       `json:"graph"`
 	Metadata    map[string]interface{} `json:"metadata"`
-	CreatedAt   time.Time            `json:"created_at"`
-	AccessedAt  time.Time            `json:"accessed_at"`
-	AccessCount int64                `json:"access_count"`
-	Size        int64                `json:"size"`        // Estimated size in bytes
-	Hash        string               `json:"hash"`        // Content hash for validation
+	CreatedAt   time.Time              `json:"created_at"`
+	AccessedAt  time.Time              `json:"accessed_at"`
+	AccessCount int64                  `json:"access_count"`
+	Size        int64                  `json:"size"` // Estimated size in bytes
+	Hash        string                 `json:"hash"` // Content hash for validation
 }
 
 // CacheMetrics tracks cache performance
 type CacheMetrics struct {
-	Hits         int64     `json:"hits"`
-	Misses       int64     `json:"misses"`
-	Evictions    int64     `json:"evictions"`
-	TotalSize    int64     `json:"total_size"`
-	HitRate      float64   `json:"hit_rate"`
-	LastCleanup  time.Time `json:"last_cleanup"`
-	mutex        sync.RWMutex
+	Hits        int64     `json:"hits"`
+	Misses      int64     `json:"misses"`
+	Evictions   int64     `json:"evictions"`
+	TotalSize   int64     `json:"total_size"`
+	HitRate     float64   `json:"hit_rate"`
+	LastCleanup time.Time `json:"last_cleanup"`
+	mutex       sync.RWMutex
 }
 
 // NewPersistentCache creates a new persistent cache
@@ -141,19 +141,19 @@ func (pc *PersistentCache) SetGraph(key string, graph *types.CodeGraph) error {
 
 	// Calculate content hash for validation
 	hash := pc.calculateGraphHash(graph)
-	
+
 	// Estimate size
 	size := pc.estimateGraphSize(graph)
 
 	item := &CacheItem{
-		Key:        key,
-		Graph:      graph,
-		Metadata:   make(map[string]interface{}),
-		CreatedAt:  time.Now(),
-		AccessedAt: time.Now(),
+		Key:         key,
+		Graph:       graph,
+		Metadata:    make(map[string]interface{}),
+		CreatedAt:   time.Now(),
+		AccessedAt:  time.Now(),
 		AccessCount: 1,
-		Size:       size,
-		Hash:       hash,
+		Size:        size,
+		Hash:        hash,
 	}
 
 	pc.mutex.Lock()
@@ -183,7 +183,7 @@ func (pc *PersistentCache) SetGraph(key string, graph *types.CodeGraph) error {
 // GetAST retrieves a cached AST by file path
 func (pc *PersistentCache) GetAST(filePath string) *types.AST {
 	key := "ast:" + filePath
-	
+
 	pc.mutex.RLock()
 	item, exists := pc.items[key]
 	pc.mutex.RUnlock()
@@ -225,13 +225,13 @@ func (pc *PersistentCache) SetAST(filePath string, ast *types.AST) error {
 	size := int64(len(ast.Content) + 1000) // Estimate AST overhead
 
 	item := &CacheItem{
-		Key:        key,
-		Metadata:   map[string]interface{}{"ast": ast},
-		CreatedAt:  time.Now(),
-		AccessedAt: time.Now(),
+		Key:         key,
+		Metadata:    map[string]interface{}{"ast": ast},
+		CreatedAt:   time.Now(),
+		AccessedAt:  time.Now(),
 		AccessCount: 1,
-		Size:       size,
-		Hash:       pc.calculateASTHash(ast),
+		Size:        size,
+		Hash:        pc.calculateASTHash(ast),
 	}
 
 	pc.mutex.Lock()
@@ -307,7 +307,7 @@ func (pc *PersistentCache) recordHit() {
 	if !pc.config.EnableMetrics {
 		return
 	}
-	
+
 	pc.metrics.mutex.Lock()
 	pc.metrics.Hits++
 	pc.metrics.mutex.Unlock()
@@ -317,7 +317,7 @@ func (pc *PersistentCache) recordMiss() {
 	if !pc.config.EnableMetrics {
 		return
 	}
-	
+
 	pc.metrics.mutex.Lock()
 	pc.metrics.Misses++
 	pc.metrics.mutex.Unlock()
@@ -328,7 +328,7 @@ func (pc *PersistentCache) evictItems() error {
 	if pc.config.EnableLRU {
 		return pc.evictLRU()
 	}
-	
+
 	// Simple eviction: remove oldest items
 	return pc.evictOldest()
 }
@@ -359,7 +359,7 @@ func (pc *PersistentCache) evictLRU() error {
 
 		delete(pc.items, oldestKey)
 		delete(pc.access, oldestKey)
-		
+
 		// Remove from disk
 		pc.removeFromDisk(oldestKey)
 	}
@@ -393,7 +393,7 @@ func (pc *PersistentCache) evictOldest() error {
 
 		delete(pc.items, oldestKey)
 		delete(pc.access, oldestKey)
-		
+
 		// Remove from disk
 		pc.removeFromDisk(oldestKey)
 	}
@@ -403,11 +403,11 @@ func (pc *PersistentCache) evictOldest() error {
 
 func (pc *PersistentCache) calculateGraphHash(graph *types.CodeGraph) string {
 	// Simple hash based on graph metadata
-	data := fmt.Sprintf("%d-%d-%s", 
-		len(graph.Files), 
+	data := fmt.Sprintf("%d-%d-%s",
+		len(graph.Files),
 		len(graph.Symbols),
 		graph.Metadata.Generated.Format(time.RFC3339))
-	
+
 	hash := md5.Sum([]byte(data))
 	return hex.EncodeToString(hash[:])
 }
@@ -421,17 +421,17 @@ func (pc *PersistentCache) calculateASTHash(ast *types.AST) string {
 func (pc *PersistentCache) estimateGraphSize(graph *types.CodeGraph) int64 {
 	// Rough estimation of graph size in memory
 	size := int64(0)
-	
+
 	// Estimate file nodes
 	size += int64(len(graph.Files)) * 1000 // ~1KB per file node
-	
+
 	// Estimate symbols
 	size += int64(len(graph.Symbols)) * 500 // ~500B per symbol
-	
+
 	// Estimate nodes and edges
 	size += int64(len(graph.Nodes)) * 300 // ~300B per node
 	size += int64(len(graph.Edges)) * 200 // ~200B per edge
-	
+
 	return size
 }
 
@@ -484,7 +484,7 @@ func (pc *PersistentCache) cleanup() {
 
 func (pc *PersistentCache) loadFromDisk() error {
 	indexPath := filepath.Join(pc.config.Directory, "index.gob")
-	
+
 	if _, err := os.Stat(indexPath); os.IsNotExist(err) {
 		return nil // No existing cache
 	}
@@ -496,7 +496,7 @@ func (pc *PersistentCache) loadFromDisk() error {
 	defer file.Close()
 
 	decoder := gob.NewDecoder(file)
-	
+
 	var items map[string]*CacheItem
 	if err := decoder.Decode(&items); err != nil {
 		return err
@@ -526,7 +526,7 @@ func (pc *PersistentCache) saveToDisk(key string, item *CacheItem) error {
 	}
 
 	itemPath := pc.getCacheFilePath(key)
-	
+
 	file, err := os.Create(itemPath)
 	if err != nil {
 		return err
@@ -545,7 +545,7 @@ func (pc *PersistentCache) loadItemFromDisk(key, itemPath string) error {
 	defer file.Close()
 
 	decoder := gob.NewDecoder(file)
-	
+
 	var item CacheItem
 	if err := decoder.Decode(&item); err != nil {
 		return err
@@ -562,7 +562,7 @@ func (pc *PersistentCache) removeFromDisk(key string) {
 
 func (pc *PersistentCache) saveIndexToDisk() error {
 	indexPath := filepath.Join(pc.config.Directory, "index.gob")
-	
+
 	file, err := os.Create(indexPath)
 	if err != nil {
 		return err
@@ -570,7 +570,7 @@ func (pc *PersistentCache) saveIndexToDisk() error {
 	defer file.Close()
 
 	encoder := gob.NewEncoder(file)
-	
+
 	// Only save items that have graphs (not ASTs)
 	persistentItems := make(map[string]*CacheItem)
 	for key, item := range pc.items {
@@ -578,7 +578,7 @@ func (pc *PersistentCache) saveIndexToDisk() error {
 			persistentItems[key] = item
 		}
 	}
-	
+
 	return encoder.Encode(persistentItems)
 }
 

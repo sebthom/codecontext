@@ -313,7 +313,7 @@ func TestMockFileSystem_MultipleWatches(t *testing.T) {
 
 	// Only watch1 should receive event due to pattern filtering
 	var gotEvent1, gotEvent2 bool
-	
+
 	select {
 	case event := <-watch1.GetEvents():
 		assert.Equal(t, "test.go", event.Path)
@@ -328,7 +328,7 @@ func TestMockFileSystem_MultipleWatches(t *testing.T) {
 	case <-time.After(50 * time.Millisecond):
 		// No event received in watch2 (expected)
 	}
-	
+
 	assert.True(t, gotEvent1, "watch1 should have received .go file event")
 	assert.False(t, gotEvent2, "watch2 should not have received .go file event")
 
@@ -353,7 +353,7 @@ func TestMockFileSystem_MultipleWatches(t *testing.T) {
 	case <-time.After(100 * time.Millisecond):
 		// No event received in watch2
 	}
-	
+
 	assert.False(t, gotEvent1, "watch1 should not have received .js file event")
 	assert.True(t, gotEvent2, "watch2 should have received .js file event")
 }
@@ -412,7 +412,7 @@ func TestMockFileSystem_PathNormalization(t *testing.T) {
 	// All paths should refer to the same file
 	for _, path := range paths {
 		assert.True(t, mfs.Exists(path), "Path should exist: %s", path)
-		
+
 		content, err := mfs.ReadFile(path)
 		require.NoError(t, err, "Should be able to read: %s", path)
 		assert.Equal(t, []byte("test"), content)
@@ -450,7 +450,7 @@ func TestCreateTestProject(t *testing.T) {
 
 	for _, file := range expectedFiles {
 		assert.True(t, mfs.Exists(file), "File should exist: %s", file)
-		
+
 		content, err := mfs.ReadFile(file)
 		require.NoError(t, err)
 		assert.NotEmpty(t, content, "File should have content: %s", file)
@@ -626,10 +626,10 @@ func countEvents(watch *MockWatch, timeout time.Duration) int {
 
 func TestMockFileSystem_ThreadSafety(t *testing.T) {
 	mfs := NewMockFileSystem()
-	
+
 	// Run concurrent operations
 	done := make(chan bool, 10)
-	
+
 	// Concurrent file creation
 	for i := 0; i < 5; i++ {
 		go func(id int) {
@@ -640,7 +640,7 @@ func TestMockFileSystem_ThreadSafety(t *testing.T) {
 			}
 		}(i)
 	}
-	
+
 	// Concurrent file reading/existence checking
 	for i := 0; i < 5; i++ {
 		go func(id int) {
@@ -654,12 +654,12 @@ func TestMockFileSystem_ThreadSafety(t *testing.T) {
 			}
 		}(i + 5)
 	}
-	
+
 	// Wait for all goroutines to complete
 	for i := 0; i < 10; i++ {
 		<-done
 	}
-	
+
 	// Verify that files were created correctly
 	files := mfs.GetAllFiles()
 	assert.Equal(t, 500, len(files)) // 5 threads * 100 files each

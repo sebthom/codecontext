@@ -235,7 +235,7 @@ func (lsa *LocationSimilarityAlgorithm) CalculateSimilarity(old, new *types.Symb
 	newLine := new.Location.StartLine
 
 	lineDiff := abs(oldLine - newLine)
-	
+
 	// Exponential decay for line distance
 	score := math.Exp(-float64(lineDiff) / 20.0)
 
@@ -528,7 +528,7 @@ func (ssa *SignatureSimilarityAlgorithm) compareParameterTypes(param1, param2 st
 	// Extract type from parameter (remove variable names)
 	type1 := ssa.extractType(param1)
 	type2 := ssa.extractType(param2)
-	
+
 	return type1 == type2
 }
 
@@ -565,15 +565,15 @@ func (ssa *StructuralSimilarityAlgorithm) compareKinds(kind1, kind2 string) floa
 	if kind1 == kind2 {
 		return 1.0
 	}
-	
+
 	// Some kinds are similar (e.g., function vs method)
 	similarKinds := map[string][]string{
-		"function": {"method"},
-		"method":   {"function"},
-		"class":    {"interface"},
+		"function":  {"method"},
+		"method":    {"function"},
+		"class":     {"interface"},
 		"interface": {"class"},
 	}
-	
+
 	if similar, exists := similarKinds[kind1]; exists {
 		for _, s := range similar {
 			if s == kind2 {
@@ -581,7 +581,7 @@ func (ssa *StructuralSimilarityAlgorithm) compareKinds(kind1, kind2 string) floa
 			}
 		}
 	}
-	
+
 	return 0.0
 }
 
@@ -589,43 +589,43 @@ func (ssa *StructuralSimilarityAlgorithm) compareVisibility(vis1, vis2 string) f
 	if vis1 == vis2 {
 		return 1.0
 	}
-	
+
 	// Visibility changes are somewhat similar
 	visibilityMap := map[string]int{
 		"private":   0,
 		"protected": 1,
 		"public":    2,
 	}
-	
+
 	v1, ok1 := visibilityMap[vis1]
 	v2, ok2 := visibilityMap[vis2]
-	
+
 	if ok1 && ok2 {
 		diff := abs(v1 - v2)
 		return 1.0 - float64(diff)/2.0
 	}
-	
+
 	return 0.5
 }
 
 func (ssa *StructuralSimilarityAlgorithm) compareSizes(old, new *types.Symbol) float64 {
 	oldSize := old.Location.EndLine - old.Location.StartLine + 1
 	newSize := new.Location.EndLine - new.Location.StartLine + 1
-	
+
 	sizeDiff := abs(oldSize - newSize)
 	maxSize := max(oldSize, newSize)
-	
+
 	if maxSize == 0 {
 		return 1.0
 	}
-	
+
 	return 1.0 - float64(sizeDiff)/float64(maxSize)
 }
 
 func (ssa *StructuralSimilarityAlgorithm) calculateConfidence(old, new *types.Symbol, score float64) float64 {
 	// Higher confidence for symbols with more structural information
 	confidence := 0.5
-	
+
 	if old.Kind != "" && new.Kind != "" {
 		confidence += 0.2
 	}
@@ -635,7 +635,7 @@ func (ssa *StructuralSimilarityAlgorithm) calculateConfidence(old, new *types.Sy
 	if old.Signature != "" && new.Signature != "" {
 		confidence += 0.1
 	}
-	
+
 	return confidence
 }
 
@@ -650,28 +650,28 @@ func (dsa *DocumentationSimilarityAlgorithm) normalizedEditDistance(s1, s2 strin
 func (dsa *DocumentationSimilarityAlgorithm) wordSimilarity(doc1, doc2 string) float64 {
 	words1 := strings.Fields(strings.ToLower(doc1))
 	words2 := strings.Fields(strings.ToLower(doc2))
-	
+
 	if len(words1) == 0 && len(words2) == 0 {
 		return 1.0
 	}
 	if len(words1) == 0 || len(words2) == 0 {
 		return 0.0
 	}
-	
+
 	// Word-level Jaccard similarity
 	set1 := make(map[string]bool)
 	set2 := make(map[string]bool)
-	
+
 	for _, word := range words1 {
 		set1[word] = true
 	}
 	for _, word := range words2 {
 		set2[word] = true
 	}
-	
+
 	intersection := 0
 	union := len(set1)
-	
+
 	for word := range set2 {
 		if set1[word] {
 			intersection++
@@ -679,7 +679,7 @@ func (dsa *DocumentationSimilarityAlgorithm) wordSimilarity(doc1, doc2 string) f
 			union++
 		}
 	}
-	
+
 	return float64(intersection) / float64(union)
 }
 
@@ -687,14 +687,14 @@ func (dsa *DocumentationSimilarityAlgorithm) conceptSimilarity(doc1, doc2 string
 	// Extract key concepts (simplified)
 	concepts1 := dsa.extractConcepts(doc1)
 	concepts2 := dsa.extractConcepts(doc2)
-	
+
 	if len(concepts1) == 0 && len(concepts2) == 0 {
 		return 1.0
 	}
 	if len(concepts1) == 0 || len(concepts2) == 0 {
 		return 0.0
 	}
-	
+
 	matches := 0
 	for _, concept := range concepts1 {
 		for _, otherConcept := range concepts2 {
@@ -704,7 +704,7 @@ func (dsa *DocumentationSimilarityAlgorithm) conceptSimilarity(doc1, doc2 string
 			}
 		}
 	}
-	
+
 	return float64(matches) / float64(max(len(concepts1), len(concepts2)))
 }
 
@@ -712,19 +712,19 @@ func (dsa *DocumentationSimilarityAlgorithm) extractConcepts(doc string) []strin
 	// Simple concept extraction (keywords)
 	words := strings.Fields(strings.ToLower(doc))
 	var concepts []string
-	
+
 	// Filter for meaningful words (length > 3, not common words)
 	commonWords := map[string]bool{
 		"the": true, "and": true, "that": true, "this": true,
 		"with": true, "for": true, "are": true, "will": true,
 	}
-	
+
 	for _, word := range words {
 		if len(word) > 3 && !commonWords[word] {
 			concepts = append(concepts, word)
 		}
 	}
-	
+
 	return concepts
 }
 
@@ -732,7 +732,7 @@ func (dsa *DocumentationSimilarityAlgorithm) calculateConfidence(doc1, doc2 stri
 	// Higher confidence for longer documentation
 	avgLen := float64(len(doc1)+len(doc2)) / 2.0
 	lengthFactor := math.Min(avgLen/100.0, 1.0)
-	
+
 	return score*0.7 + lengthFactor*0.3
 }
 

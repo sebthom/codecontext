@@ -11,25 +11,25 @@ import (
 
 // VirtualGraphEngine implements the Virtual Graph pattern for efficient incremental updates
 type VirtualGraphEngine struct {
-	shadow         *types.CodeGraph         // Virtual representation
-	actual         *types.CodeGraph         // Committed state
-	pendingChanges []ChangeSet              // Batched changes
-	differ         *ASTDiffer               // Diff computation
-	reconciler     *Reconciler              // Change application
-	batcher        *ChangeBatcher           // Change batching logic
-	config         *VGEConfig               // Configuration
-	metrics        *VGEMetrics              // Performance metrics
-	mu             sync.RWMutex             // Thread safety
+	shadow         *types.CodeGraph // Virtual representation
+	actual         *types.CodeGraph // Committed state
+	pendingChanges []ChangeSet      // Batched changes
+	differ         *ASTDiffer       // Diff computation
+	reconciler     *Reconciler      // Change application
+	batcher        *ChangeBatcher   // Change batching logic
+	config         *VGEConfig       // Configuration
+	metrics        *VGEMetrics      // Performance metrics
+	mu             sync.RWMutex     // Thread safety
 }
 
 // VGEConfig holds configuration for the Virtual Graph Engine
 type VGEConfig struct {
-	BatchThreshold   int           `json:"batch_threshold"`   // Number of changes to batch
-	BatchTimeout     time.Duration `json:"batch_timeout"`     // Max time to wait for batching
-	MaxShadowMemory  int64         `json:"max_shadow_memory"` // Maximum shadow graph memory (bytes)
-	DiffAlgorithm    string        `json:"diff_algorithm"`    // myers, patience, histogram
-	EnableMetrics    bool          `json:"enable_metrics"`    // Enable performance metrics
-	GCThreshold      float64       `json:"gc_threshold"`      // GC trigger threshold (0.0-1.0)
+	BatchThreshold  int           `json:"batch_threshold"`   // Number of changes to batch
+	BatchTimeout    time.Duration `json:"batch_timeout"`     // Max time to wait for batching
+	MaxShadowMemory int64         `json:"max_shadow_memory"` // Maximum shadow graph memory (bytes)
+	DiffAlgorithm   string        `json:"diff_algorithm"`    // myers, patience, histogram
+	EnableMetrics   bool          `json:"enable_metrics"`    // Enable performance metrics
+	GCThreshold     float64       `json:"gc_threshold"`      // GC trigger threshold (0.0-1.0)
 }
 
 // VGEMetrics tracks performance metrics for the Virtual Graph Engine
@@ -70,7 +70,7 @@ const (
 // Change represents a specific change to apply
 type Change struct {
 	Type     ChangeType             `json:"type"`
-	Target   string                 `json:"target"`   // File path or symbol ID
+	Target   string                 `json:"target"` // File path or symbol ID
 	OldValue interface{}            `json:"old_value"`
 	NewValue interface{}            `json:"new_value"`
 	Metadata map[string]interface{} `json:"metadata"`
@@ -78,12 +78,12 @@ type Change struct {
 
 // ReconciliationPlan represents a plan for applying changes
 type ReconciliationPlan struct {
-	Patches        []GraphPatch       `json:"patches"`
-	UpdateOrder    []types.NodeId     `json:"update_order"`
-	Invalidations  []CacheInvalidation `json:"invalidations"`
-	EstimatedTime  time.Duration      `json:"estimated_time"`
-	TokenImpact    *TokenDelta        `json:"token_impact"`
-	Dependencies   map[string][]string `json:"dependencies"`
+	Patches       []GraphPatch        `json:"patches"`
+	UpdateOrder   []types.NodeId      `json:"update_order"`
+	Invalidations []CacheInvalidation `json:"invalidations"`
+	EstimatedTime time.Duration       `json:"estimated_time"`
+	TokenImpact   *TokenDelta         `json:"token_impact"`
+	Dependencies  map[string][]string `json:"dependencies"`
 }
 
 // GraphPatch represents a change to apply to the graph
@@ -101,9 +101,9 @@ type GraphPatch struct {
 type PatchType string
 
 const (
-	PatchTypeAdd    PatchType = "add"
-	PatchTypeRemove PatchType = "remove"
-	PatchTypeModify PatchType = "modify"
+	PatchTypeAdd     PatchType = "add"
+	PatchTypeRemove  PatchType = "remove"
+	PatchTypeModify  PatchType = "modify"
 	PatchTypeReorder PatchType = "reorder"
 )
 
@@ -116,9 +116,9 @@ type PropertyChange struct {
 
 // CacheInvalidation represents a cache invalidation
 type CacheInvalidation struct {
-	Type    string   `json:"type"`
-	Keys    []string `json:"keys"`
-	Reason  string   `json:"reason"`
+	Type   string   `json:"type"`
+	Keys   []string `json:"keys"`
+	Reason string   `json:"reason"`
 }
 
 // TokenDelta represents the impact on token count
@@ -456,13 +456,13 @@ func (vge *VirtualGraphEngine) deepCopyGraph(graph *types.CodeGraph) (*types.Cod
 // updateMetrics updates internal metrics
 func (vge *VirtualGraphEngine) updateMetrics() {
 	vge.metrics.LastUpdate = time.Now()
-	
+
 	// Calculate shadow memory usage (approximate)
 	shadowMemory := int64(0)
-	shadowMemory += int64(len(vge.shadow.Nodes) * 200)    // Approximate size per node
-	shadowMemory += int64(len(vge.shadow.Edges) * 150)    // Approximate size per edge
-	shadowMemory += int64(len(vge.shadow.Files) * 300)    // Approximate size per file
-	shadowMemory += int64(len(vge.shadow.Symbols) * 250)  // Approximate size per symbol
-	
+	shadowMemory += int64(len(vge.shadow.Nodes) * 200)   // Approximate size per node
+	shadowMemory += int64(len(vge.shadow.Edges) * 150)   // Approximate size per edge
+	shadowMemory += int64(len(vge.shadow.Files) * 300)   // Approximate size per file
+	shadowMemory += int64(len(vge.shadow.Symbols) * 250) // Approximate size per symbol
+
 	vge.metrics.ShadowMemoryBytes = shadowMemory
 }

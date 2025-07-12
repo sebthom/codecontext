@@ -11,10 +11,10 @@ import (
 var (
 	cfgFile string
 	// Version information
-	appVersion   = "2.0.0"
-	buildDate    = "unknown"
-	gitCommit    = "unknown"
-	
+	appVersion = "2.0.0"
+	buildDate  = "unknown"
+	gitCommit  = "unknown"
+
 	rootCmd = &cobra.Command{
 		Use:   "codecontext",
 		Short: "CodeContext - Intelligent context maps for AI-powered development",
@@ -41,7 +41,7 @@ func SetVersion(version, date, commit string) {
 	if commit != "" {
 		gitCommit = commit
 	}
-	
+
 	// Update version template to include build info
 	rootCmd.SetVersionTemplate(fmt.Sprintf(`{{with .Name}}{{printf "%%s " .}}{{end}}{{printf "version %%s" .Version}}
 Build Date: %s
@@ -51,11 +51,11 @@ Git Commit: %s
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	
+
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is .codecontext/config.yaml)")
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "verbose output")
 	rootCmd.PersistentFlags().StringP("output", "o", "CLAUDE.md", "output file")
-	
+
 	viper.BindPFlag("verbose", rootCmd.PersistentFlags().Lookup("verbose"))
 	viper.BindPFlag("output", rootCmd.PersistentFlags().Lookup("output"))
 }

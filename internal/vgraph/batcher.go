@@ -27,10 +27,10 @@ type BatchInfo struct {
 type BatchStrategy string
 
 const (
-	BatchStrategySize     BatchStrategy = "size"      // Batch by size
-	BatchStrategyTime     BatchStrategy = "time"      // Batch by time
-	BatchStrategyPriority BatchStrategy = "priority"  // Batch by priority
-	BatchStrategyAdaptive BatchStrategy = "adaptive"  // Adaptive batching
+	BatchStrategySize     BatchStrategy = "size"     // Batch by size
+	BatchStrategyTime     BatchStrategy = "time"     // Batch by time
+	BatchStrategyPriority BatchStrategy = "priority" // Batch by priority
+	BatchStrategyAdaptive BatchStrategy = "adaptive" // Adaptive batching
 )
 
 // NewChangeBatcher creates a new change batcher
@@ -53,7 +53,7 @@ func (cb *ChangeBatcher) AddChange(change ChangeSet) error {
 	defer cb.mutex.Unlock()
 
 	batchKey := cb.getBatchKey(change)
-	
+
 	// Get or create batch
 	batch, exists := cb.batches[batchKey]
 	if !exists {
@@ -65,7 +65,7 @@ func (cb *ChangeBatcher) AddChange(change ChangeSet) error {
 			Priority:  cb.calculatePriority(change),
 		}
 		cb.batches[batchKey] = batch
-		
+
 		// Start timer for this batch
 		cb.startBatchTimer(batchKey)
 	}
@@ -154,7 +154,7 @@ func (cb *ChangeBatcher) processBatch(batchKey string) error {
 
 	// Remove batch from pending batches
 	delete(cb.batches, batchKey)
-	
+
 	// Cancel timer if it exists
 	if timer, exists := cb.timers[batchKey]; exists {
 		timer.Stop()

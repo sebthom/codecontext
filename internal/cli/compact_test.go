@@ -82,31 +82,31 @@ func TestGetQualityScore(t *testing.T) {
 
 func TestCompactionCalculations(t *testing.T) {
 	tests := []struct {
-		name             string
-		originalTokens   int
-		level            string
-		expectedTokens   int
+		name              string
+		originalTokens    int
+		level             string
+		expectedTokens    int
 		expectedReduction float64
 	}{
 		{
-			name:             "minimal compaction",
-			originalTokens:   150000,
-			level:            "minimal",
-			expectedTokens:   45000,
+			name:              "minimal compaction",
+			originalTokens:    150000,
+			level:             "minimal",
+			expectedTokens:    45000,
 			expectedReduction: 70.0,
 		},
 		{
-			name:             "balanced compaction",
-			originalTokens:   150000,
-			level:            "balanced",
-			expectedTokens:   90000,
+			name:              "balanced compaction",
+			originalTokens:    150000,
+			level:             "balanced",
+			expectedTokens:    90000,
 			expectedReduction: 40.0,
 		},
 		{
-			name:             "aggressive compaction",
-			originalTokens:   150000,
-			level:            "aggressive",
-			expectedTokens:   22500,
+			name:              "aggressive compaction",
+			originalTokens:    150000,
+			level:             "aggressive",
+			expectedTokens:    22500,
 			expectedReduction: 85.0,
 		},
 	}
@@ -115,11 +115,11 @@ func TestCompactionCalculations(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			compactedTokens := int(float64(tt.originalTokens) * getReductionFactor(tt.level))
 			reductionPercent := float64(tt.originalTokens-compactedTokens) / float64(tt.originalTokens) * 100
-			
+
 			if compactedTokens != tt.expectedTokens {
 				t.Errorf("Compacted tokens = %d, expected %d", compactedTokens, tt.expectedTokens)
 			}
-			
+
 			if reductionPercent != tt.expectedReduction {
 				t.Errorf("Reduction percent = %f, expected %f", reductionPercent, tt.expectedReduction)
 			}

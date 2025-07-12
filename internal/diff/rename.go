@@ -12,10 +12,10 @@ import (
 
 // RenameDetector detects symbol renames using advanced similarity algorithms
 type RenameDetector struct {
-	config      *Config
-	algorithms  []SimilarityAlgorithm
-	heuristics  []RenameHeuristic
-	cache       map[string]*RenameCandidate
+	config     *Config
+	algorithms []SimilarityAlgorithm
+	heuristics []RenameHeuristic
+	cache      map[string]*RenameCandidate
 }
 
 // SimilarityAlgorithm defines an interface for similarity calculation
@@ -34,39 +34,39 @@ type RenameHeuristic interface {
 
 // SimilarityScore represents a similarity score from an algorithm
 type SimilarityScore struct {
-	Score       float64 `json:"score"`        // 0.0 to 1.0
-	Confidence  float64 `json:"confidence"`   // 0.0 to 1.0
-	Evidence    string  `json:"evidence"`     // Description of evidence
-	Algorithm   string  `json:"algorithm"`    // Algorithm that produced this score
+	Score      float64 `json:"score"`      // 0.0 to 1.0
+	Confidence float64 `json:"confidence"` // 0.0 to 1.0
+	Evidence   string  `json:"evidence"`   // Description of evidence
+	Algorithm  string  `json:"algorithm"`  // Algorithm that produced this score
 }
 
 // HeuristicScore represents a score from a heuristic rule
 type HeuristicScore struct {
-	Score      float64 `json:"score"`       // 0.0 to 1.0
-	Confidence float64 `json:"confidence"`  // 0.0 to 1.0
-	Reason     string  `json:"reason"`      // Reason for this score
-	Heuristic  string  `json:"heuristic"`   // Heuristic that produced this score
+	Score      float64 `json:"score"`      // 0.0 to 1.0
+	Confidence float64 `json:"confidence"` // 0.0 to 1.0
+	Reason     string  `json:"reason"`     // Reason for this score
+	Heuristic  string  `json:"heuristic"`  // Heuristic that produced this score
 }
 
 // RenameCandidate represents a potential rename match
 type RenameCandidate struct {
-	OldSymbol          *types.Symbol      `json:"old_symbol"`
-	NewSymbol          *types.Symbol      `json:"new_symbol"`
-	OverallScore       float64            `json:"overall_score"`
-	Confidence         float64            `json:"confidence"`
-	SimilarityScores   []SimilarityScore  `json:"similarity_scores"`
-	HeuristicScores    []HeuristicScore   `json:"heuristic_scores"`
-	Evidence           []string           `json:"evidence"`
-	RenameType         RenameType         `json:"rename_type"`
-	Risk               RiskLevel          `json:"risk"`
+	OldSymbol        *types.Symbol     `json:"old_symbol"`
+	NewSymbol        *types.Symbol     `json:"new_symbol"`
+	OverallScore     float64           `json:"overall_score"`
+	Confidence       float64           `json:"confidence"`
+	SimilarityScores []SimilarityScore `json:"similarity_scores"`
+	HeuristicScores  []HeuristicScore  `json:"heuristic_scores"`
+	Evidence         []string          `json:"evidence"`
+	RenameType       RenameType        `json:"rename_type"`
+	Risk             RiskLevel         `json:"risk"`
 }
 
 // RenameContext provides context for rename detection
 type RenameContext struct {
-	OldFile       *types.FileInfo
-	NewFile       *types.FileInfo
-	DeletedSymbols []*types.Symbol
-	AddedSymbols   []*types.Symbol
+	OldFile         *types.FileInfo
+	NewFile         *types.FileInfo
+	DeletedSymbols  []*types.Symbol
+	AddedSymbols    []*types.Symbol
 	ModifiedSymbols []*types.Symbol
 }
 
@@ -74,11 +74,11 @@ type RenameContext struct {
 type RenameType string
 
 const (
-	RenameTypeSimple       RenameType = "simple"        // Just name changed
-	RenameTypeRefactoring  RenameType = "refactoring"   // Name + structure changed
-	RenameTypeSignature    RenameType = "signature"     // Name + signature changed
-	RenameTypeMove         RenameType = "move"          // Moved to different scope
-	RenameTypeComplex      RenameType = "complex"       // Multiple changes
+	RenameTypeSimple      RenameType = "simple"      // Just name changed
+	RenameTypeRefactoring RenameType = "refactoring" // Name + structure changed
+	RenameTypeSignature   RenameType = "signature"   // Name + signature changed
+	RenameTypeMove        RenameType = "move"        // Moved to different scope
+	RenameTypeComplex     RenameType = "complex"     // Multiple changes
 )
 
 // RiskLevel represents the risk of incorrectly identifying a rename
@@ -237,7 +237,7 @@ func (rd *RenameDetector) scoreCandidate(candidate *RenameCandidate, context *Re
 	for _, algorithm := range rd.algorithms {
 		score := algorithm.CalculateSimilarity(candidate.OldSymbol, candidate.NewSymbol)
 		candidate.SimilarityScores = append(candidate.SimilarityScores, score)
-		
+
 		weight := algorithm.GetWeight()
 		totalSimilarityScore += score.Score * weight
 		totalSimilarityWeight += weight
@@ -248,7 +248,7 @@ func (rd *RenameDetector) scoreCandidate(candidate *RenameCandidate, context *Re
 	for _, heuristic := range rd.heuristics {
 		score := heuristic.EvaluateRename(candidate.OldSymbol, candidate.NewSymbol, context)
 		candidate.HeuristicScores = append(candidate.HeuristicScores, score)
-		
+
 		weight := heuristic.GetWeight()
 		totalHeuristicScore += score.Score * weight
 		totalHeuristicWeight += weight
@@ -257,7 +257,7 @@ func (rd *RenameDetector) scoreCandidate(candidate *RenameCandidate, context *Re
 	// Calculate overall score (weighted average)
 	similarityScore := totalSimilarityScore / totalSimilarityWeight
 	heuristicScore := totalHeuristicScore / totalHeuristicWeight
-	
+
 	// Combine scores (60% similarity, 40% heuristics)
 	candidate.OverallScore = similarityScore*0.6 + heuristicScore*0.4
 
@@ -370,10 +370,10 @@ func (rd *RenameDetector) calculateConfidence(candidate *RenameCandidate) float6
 	// Calculate variance to determine consistency
 	mean := rd.calculateMean(scores)
 	variance := rd.calculateVariance(scores, mean)
-	
+
 	// Lower variance = higher confidence
 	confidence := 1.0 - math.Min(variance, 1.0)
-	
+
 	return confidence
 }
 

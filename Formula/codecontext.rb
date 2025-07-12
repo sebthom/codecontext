@@ -3,7 +3,7 @@ class Codecontext < Formula
   desc "Intelligent context maps for AI-powered development tools"
   homepage "https://github.com/nmakod/codecontext"
   url "https://github.com/nmakod/codecontext/archive/v2.0.0.tar.gz"
-  sha256 "72f79124718fe1d5f9787673ac62c4871168a8927f948ca99156d02c16da89c9"
+  sha256 "ffba3ccfe55ef4012000d6d14ee2ed7fb69c3179a15d4f7ec144277469a60193"
   license "MIT"
   head "https://github.com/nmakod/codecontext.git", branch: "main"
 
