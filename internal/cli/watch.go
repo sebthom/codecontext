@@ -97,10 +97,16 @@ func init() {
 }
 
 func runWatchMode() error {
+	// Get output file from flags with fallback to default
+	outputFile := viper.GetString("output")
+	if outputFile == "" {
+		outputFile = "CLAUDE.md"
+	}
+
 	// Create watch configuration
 	config := &WatchConfig{
 		TargetDir:          viper.GetString("target"),
-		OutputFile:         viper.GetString("output"),
+		OutputFile:         outputFile,
 		UpdateInterval:     viper.GetDuration("interval"),
 		MaxConcurrentFiles: viper.GetInt("concurrent"),
 		EnableCache:        viper.GetBool("cache"),
