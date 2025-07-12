@@ -47,9 +47,13 @@ func generateContextMap() error {
 	}
 
 	outputFile := viper.GetString("output")
-
+	if outputFile == "" {
+		outputFile = "CLAUDE.md"
+	}
+	
 	if viper.GetBool("verbose") {
 		fmt.Printf("📁 Analyzing directory: %s\n", targetDir)
+		fmt.Printf("📄 Output file: %s\n", outputFile)
 	}
 
 	// Create graph builder and analyze directory
