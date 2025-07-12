@@ -47,7 +47,7 @@ class Codecontext < Formula
     EOS
     
     # Test that codecontext can analyze the test file
-    system bin/"codecontext", "init"
+    system bin/"codecontext", "init", "--force"
     assert_predicate testpath/".codecontext/config.yaml", :exist?
     
     system bin/"codecontext", "generate", "--output", "test-output.md"
