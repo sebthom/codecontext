@@ -1,0 +1,57 @@
+# Homebrew Formula for CodeContext
+class Codecontext < Formula
+  desc "Intelligent context maps for AI-powered development tools"
+  homepage "https://github.com/nuthan-ms/codecontext"
+  url "https://github.com/nuthan-ms/codecontext/archive/v2.0.0.tar.gz"
+  sha256 "72f79124718fe1d5f9787673ac62c4871168a8927f948ca99156d02c16da89c9"
+  license "MIT"
+  head "https://github.com/nuthan-ms/codecontext.git", branch: "main"
+
+  depends_on "go" => :build
+
+  def install
+    # Set version information during build
+    ldflags = %W[
+      -s -w
+      -X main.version=#{version}
+      -X main.buildDate=#{time.iso8601}
+      -X main.gitCommit=#{Utils.git_head}
+    ]
+
+    system "go", "build", *std_go_args(ldflags: ldflags), "./cmd/codecontext"
+  end
+
+  test do
+    # Test that the binary runs and shows help
+    assert_match "CodeContext", shell_output("#{bin}/codecontext --help")
+    
+    # Test version command
+    assert_match version.to_s, shell_output("#{bin}/codecontext --version")
+    
+    # Test basic functionality with a simple project
+    (testpath/"test.ts").write <<~EOS
+      export function hello(name: string): string {
+        return `Hello, ${name}!`;
+      }
+    EOS
+    
+    (testpath/".codecontext").mkdir
+    (testpath/".codecontext/config.yaml").write <<~EOS
+      project:
+        name: "test"
+        path: "."
+      parser:
+        languages: ["typescript"]
+      output:
+        format: "markdown"
+    EOS
+    
+    # Test that codecontext can analyze the test file
+    system bin/"codecontext", "init"
+    assert_predicate testpath/".codecontext/config.yaml", :exist?
+    
+    system bin/"codecontext", "generate", "--output", "test-output.md"
+    assert_predicate testpath/"test-output.md", :exist?
+    assert_match "hello", File.read(testpath/"test-output.md")
+  end
+end
