@@ -58,7 +58,7 @@ brew install --HEAD --build-from-source https://raw.githubusercontent.com/nmakod
 ### Download Binary
 ```bash
 # macOS (Apple Silicon)
-curl -L https://github.com/nmakod/codecontext/releases/download/v2.0.0/codecontext-2.0.0-darwin-arm64.tar.gz | tar xz
+curl -L https://github.com/nmakod/codecontext/releases/download/v2.1.0/codecontext-2.1.0-darwin-arm64.tar.gz | tar xz
 sudo mv codecontext /usr/local/bin/
 
 # Other platforms available at: https://github.com/nmakod/codecontext/releases
@@ -137,6 +137,51 @@ codecontext update
 - `src/components/UserCard.tsx` → [`services/userService`, `utils/validation`]
 - `src/services/userService.ts` → [`utils/api`, `types/user`]
 ```
+
+## 🤖 MCP Server - Real-time AI Integration
+
+CodeContext includes a built-in **Model Context Protocol (MCP) server** that provides real-time codebase context to AI assistants like Claude Desktop, VSCode extensions, and custom AI applications.
+
+### Quick MCP Setup
+
+```bash
+# Start MCP server for current directory  
+codecontext mcp
+
+# With custom settings
+codecontext mcp --target ./src --watch --verbose
+```
+
+### AI Assistant Integration
+
+**Claude Desktop** - Add to your MCP configuration:
+```json
+{
+  "mcpServers": {
+    "codecontext": {
+      "command": "codecontext", 
+      "args": ["mcp", "--target", "/path/to/your/project"]
+    }
+  }
+}
+```
+
+### Available MCP Tools
+
+- **`get_codebase_overview`** - Complete repository analysis
+- **`get_file_analysis`** - Detailed file breakdown with symbols
+- **`get_symbol_info`** - Symbol definitions and usage
+- **`search_symbols`** - Search symbols across codebase
+- **`get_dependencies`** - Import/dependency analysis
+- **`watch_changes`** - Real-time change notifications
+
+**Benefits:**
+- ✅ Real-time context updates as you code
+- ✅ No manual copy/paste of context
+- ✅ Standardized protocol for all AI tools
+- ✅ Live symbol search and dependency analysis
+
+📖 **[Complete MCP Documentation →](docs/MCP.md)**
 
 ## 🛠️ Advanced Usage
 
@@ -324,4 +369,4 @@ Claude: "I can see your full architecture! Based on your current structure with 
 
 **Start building better software with AI assistance today! 🚀**
 
-**[Download CodeContext v2.0.0](https://github.com/nmakod/codecontext/releases/tag/v2.0.0)**
+**[Download CodeContext v2.1.0](https://github.com/nmakod/codecontext/releases/tag/v2.1.0)**
