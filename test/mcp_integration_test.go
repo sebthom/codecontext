@@ -53,13 +53,26 @@ type MCPClient struct {
 }
 
 func NewMCPClient(targetDir string, verbose bool) (*MCPClient, error) {
+	// Get absolute path to the project root
+	projectRoot, err := filepath.Abs("..")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get project root: %w", err)
+	}
+	
+	codecontextPath := filepath.Join(projectRoot, "codecontext")
+	
 	// Build codecontext binary if it doesn't exist
-	if _, err := os.Stat("../codecontext"); os.IsNotExist(err) {
-		buildCmd := exec.Command("go", "build", "-o", "../codecontext", "../cmd/codecontext")
-		buildCmd.Dir = ".."
+	if _, err := os.Stat(codecontextPath); os.IsNotExist(err) {
+		buildCmd := exec.Command("go", "build", "-o", "codecontext", "./cmd/codecontext")
+		buildCmd.Dir = projectRoot
 		if err := buildCmd.Run(); err != nil {
 			return nil, fmt.Errorf("failed to build codecontext: %w", err)
 		}
+	}
+	
+	// Always ensure binary has execute permissions
+	if err := os.Chmod(codecontextPath, 0755); err != nil {
+		return nil, fmt.Errorf("failed to set execute permissions: %w", err)
 	}
 
 	// Prepare command arguments
@@ -68,9 +81,9 @@ func NewMCPClient(targetDir string, verbose bool) (*MCPClient, error) {
 		args = append(args, "--verbose")
 	}
 
-	// Start the MCP server
-	cmd := exec.Command("../codecontext", args...)
-	cmd.Dir = ".."
+	// Start the MCP server using absolute path
+	cmd := exec.Command(codecontextPath, args...)
+	cmd.Dir = projectRoot
 
 	stdin, err := cmd.StdinPipe()
 	if err != nil {

@@ -1,10 +1,12 @@
 package mcp
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
 
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -156,7 +158,11 @@ func TestGetCodebaseOverview(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			response, err := server.getCodebaseOverview(tt.args)
+			ctx := context.Background()
+			params := &mcp.CallToolParamsFor[GetCodebaseOverviewArgs]{
+				Arguments: tt.args,
+			}
+			response, err := server.getCodebaseOverview(ctx, nil, params)
 
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -167,10 +173,11 @@ func TestGetCodebaseOverview(t *testing.T) {
 				assert.Len(t, response.Content, 1)
 				
 				content := response.Content[0]
-				assert.NotNil(t, content.TextContent)
+				textContent, ok := content.(*mcp.TextContent)
+				assert.True(t, ok, "Content should be TextContent")
 				
 				for _, expectedText := range tt.contains {
-					assert.Contains(t, content.TextContent.Text, expectedText)
+					assert.Contains(t, textContent.Text, expectedText)
 				}
 			}
 		})
@@ -226,7 +233,11 @@ func TestGetFileAnalysis(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			response, err := server.getFileAnalysis(tt.args)
+			ctx := context.Background()
+			params := &mcp.CallToolParamsFor[GetFileAnalysisArgs]{
+				Arguments: tt.args,
+			}
+			response, err := server.getFileAnalysis(ctx, nil, params)
 
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -240,10 +251,11 @@ func TestGetFileAnalysis(t *testing.T) {
 				assert.Len(t, response.Content, 1)
 				
 				content := response.Content[0]
-				assert.NotNil(t, content.TextContent)
+				textContent, ok := content.(*mcp.TextContent)
+				assert.True(t, ok, "Content should be TextContent")
 				
 				for _, expectedText := range tt.contains {
-					assert.Contains(t, content.TextContent.Text, expectedText)
+					assert.Contains(t, textContent.Text, expectedText)
 				}
 			}
 		})
@@ -309,7 +321,11 @@ func TestSearchSymbols(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			response, err := server.searchSymbols(tt.args)
+			ctx := context.Background()
+			params := &mcp.CallToolParamsFor[SearchSymbolsArgs]{
+				Arguments: tt.args,
+			}
+			response, err := server.searchSymbols(ctx, nil, params)
 
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -323,10 +339,11 @@ func TestSearchSymbols(t *testing.T) {
 				assert.Len(t, response.Content, 1)
 				
 				content := response.Content[0]
-				assert.NotNil(t, content.TextContent)
+				textContent, ok := content.(*mcp.TextContent)
+				assert.True(t, ok, "Content should be TextContent")
 				
 				for _, expectedText := range tt.contains {
-					assert.Contains(t, content.TextContent.Text, expectedText)
+					assert.Contains(t, textContent.Text, expectedText)
 				}
 			}
 		})
@@ -380,7 +397,11 @@ func TestGetSymbolInfo(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			response, err := server.getSymbolInfo(tt.args)
+			ctx := context.Background()
+			params := &mcp.CallToolParamsFor[GetSymbolInfoArgs]{
+				Arguments: tt.args,
+			}
+			response, err := server.getSymbolInfo(ctx, nil, params)
 
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -394,10 +415,11 @@ func TestGetSymbolInfo(t *testing.T) {
 				assert.Len(t, response.Content, 1)
 				
 				content := response.Content[0]
-				assert.NotNil(t, content.TextContent)
+				textContent, ok := content.(*mcp.TextContent)
+				assert.True(t, ok, "Content should be TextContent")
 				
 				for _, expectedText := range tt.contains {
-					assert.Contains(t, content.TextContent.Text, expectedText)
+					assert.Contains(t, textContent.Text, expectedText)
 				}
 			}
 		})
@@ -458,7 +480,11 @@ func TestGetDependencies(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			response, err := server.getDependencies(tt.args)
+			ctx := context.Background()
+			params := &mcp.CallToolParamsFor[GetDependenciesArgs]{
+				Arguments: tt.args,
+			}
+			response, err := server.getDependencies(ctx, nil, params)
 
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -469,10 +495,11 @@ func TestGetDependencies(t *testing.T) {
 				assert.Len(t, response.Content, 1)
 				
 				content := response.Content[0]
-				assert.NotNil(t, content.TextContent)
+				textContent, ok := content.(*mcp.TextContent)
+				assert.True(t, ok, "Content should be TextContent")
 				
 				for _, expectedText := range tt.contains {
-					assert.Contains(t, content.TextContent.Text, expectedText)
+					assert.Contains(t, textContent.Text, expectedText)
 				}
 			}
 		})
@@ -514,7 +541,11 @@ func TestWatchChanges(t *testing.T) {
 			contains: []string{"File watching is already enabled"},
 			setup: func() {
 				// First enable watching
-				response, err := server.watchChanges(WatchChangesArgs{Enable: true})
+				ctx := context.Background()
+				params := &mcp.CallToolParamsFor[WatchChangesArgs]{
+					Arguments: WatchChangesArgs{Enable: true},
+				}
+				response, err := server.watchChanges(ctx, nil, params)
 				require.NoError(t, err)
 				require.NotNil(t, response)
 			},
@@ -526,7 +557,11 @@ func TestWatchChanges(t *testing.T) {
 			contains: []string{"File watching disabled"},
 			setup: func() {
 				// First enable watching
-				response, err := server.watchChanges(WatchChangesArgs{Enable: true})
+				ctx := context.Background()
+				params := &mcp.CallToolParamsFor[WatchChangesArgs]{
+					Arguments: WatchChangesArgs{Enable: true},
+				}
+				response, err := server.watchChanges(ctx, nil, params)
 				require.NoError(t, err)
 				require.NotNil(t, response)
 			},
@@ -550,7 +585,11 @@ func TestWatchChanges(t *testing.T) {
 
 			tt.setup()
 
-			response, err := server.watchChanges(tt.args)
+			ctx := context.Background()
+			params := &mcp.CallToolParamsFor[WatchChangesArgs]{
+				Arguments: tt.args,
+			}
+			response, err := server.watchChanges(ctx, nil, params)
 
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -561,10 +600,11 @@ func TestWatchChanges(t *testing.T) {
 				assert.Len(t, response.Content, 1)
 				
 				content := response.Content[0]
-				assert.NotNil(t, content.TextContent)
+				textContent, ok := content.(*mcp.TextContent)
+				assert.True(t, ok, "Content should be TextContent")
 				
 				for _, expectedText := range tt.contains {
-					assert.Contains(t, content.TextContent.Text, expectedText)
+					assert.Contains(t, textContent.Text, expectedText)
 				}
 			}
 
@@ -591,7 +631,11 @@ func TestMCPServerStop(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	server.config.TargetDir = tmpDir
-	response, err := server.watchChanges(WatchChangesArgs{Enable: true})
+	ctx := context.Background()
+	params := &mcp.CallToolParamsFor[WatchChangesArgs]{
+		Arguments: WatchChangesArgs{Enable: true},
+	}
+	response, err := server.watchChanges(ctx, nil, params)
 	require.NoError(t, err)
 	require.NotNil(t, response)
 	require.NotNil(t, server.watcher)
@@ -619,11 +663,14 @@ func BenchmarkGetCodebaseOverview(b *testing.B) {
 	server, err := NewCodeContextMCPServer(config)
 	require.NoError(b, err)
 
-	args := GetCodebaseOverviewArgs{IncludeStats: false}
+	ctx := context.Background()
+	params := &mcp.CallToolParamsFor[GetCodebaseOverviewArgs]{
+		Arguments: GetCodebaseOverviewArgs{IncludeStats: false},
+	}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := server.getCodebaseOverview(args)
+		_, err := server.getCodebaseOverview(ctx, nil, params)
 		require.NoError(b, err)
 	}
 }
@@ -650,11 +697,14 @@ func BenchmarkSearchSymbols(b *testing.B) {
 	err = server.refreshAnalysis()
 	require.NoError(b, err)
 
-	args := SearchSymbolsArgs{Query: "test", Limit: 10}
+	ctx := context.Background()
+	params := &mcp.CallToolParamsFor[SearchSymbolsArgs]{
+		Arguments: SearchSymbolsArgs{Query: "test", Limit: 10},
+	}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := server.searchSymbols(args)
+		_, err := server.searchSymbols(ctx, nil, params)
 		require.NoError(b, err)
 	}
 }
