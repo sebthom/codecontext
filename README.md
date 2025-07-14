@@ -50,18 +50,23 @@ codecontext generate
 
 ## 📦 Installation
 
-### Homebrew (macOS - Recommended)
-```bash
-brew install --HEAD --build-from-source https://raw.githubusercontent.com/nmakod/codecontext/main/Formula/codecontext.rb
-```
-
-### Download Binary
+### Download Binary (Recommended)
 ```bash
 # macOS (Apple Silicon)
 curl -L https://github.com/nmakod/codecontext/releases/download/v2.1.0/codecontext-2.1.0-darwin-arm64.tar.gz | tar xz
-sudo mv codecontext /usr/local/bin/
+sudo mv codecontext-darwin-arm64 /usr/local/bin/codecontext
 
 # Other platforms available at: https://github.com/nmakod/codecontext/releases
+```
+
+### Homebrew (macOS - Alternative)
+```bash
+# Create local tap and install
+brew tap-new nmakod/codecontext
+mkdir -p $(brew --repository)/taps/nmakod/homebrew-codecontext/Formula
+curl -o $(brew --repository)/taps/nmakod/homebrew-codecontext/Formula/codecontext.rb \
+  https://raw.githubusercontent.com/nmakod/codecontext/main/Formula/codecontext.rb
+brew install nmakod/codecontext/codecontext
 ```
 
 ### Build from Source

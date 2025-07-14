@@ -1,6 +1,10 @@
 # Model Context Protocol (MCP) Server
 
-CodeContext includes a built-in Model Context Protocol (MCP) server that provides real-time codebase context to AI assistants and development tools.
+**Version:** 2.1 - Official SDK Implementation  
+**Status:** ✅ PRODUCTION READY with Official MCP Go SDK  
+**Updated:** July 2025
+
+CodeContext includes a production-ready Model Context Protocol (MCP) server built with the official MCP Go SDK that provides real-time codebase context to AI assistants and development tools.
 
 ## Overview
 
@@ -229,15 +233,22 @@ When enabled (`--watch`), the MCP server:
 
 ## Protocol Details
 
+### Official MCP SDK Implementation
+
+**SDK Version:** github.com/modelcontextprotocol/go-sdk v0.2.0  
+**Protocol Version:** 2024-11-05  
+**Compatibility:** Full Claude Desktop integration
+
 ### Transport
 
-- **Primary**: Standard I/O (stdin/stdout)
+- **Primary**: Standard I/O (stdin/stdout) via official `mcp.NewStdioTransport()`
 - **Format**: JSON-RPC 2.0 messages
-- **Encoding**: UTF-8 with newline delimiters
+- **Encoding**: UTF-8 with proper stderr/stdout separation
+- **Logging**: All debug output redirected to stderr for clean protocol communication
 
-### Capabilities
+### Enhanced Capabilities
 
-The server advertises these capabilities during initialization:
+The server advertises enhanced capabilities using official SDK patterns:
 
 ```json
 {
@@ -247,9 +258,20 @@ The server advertises these capabilities during initialization:
     },
     "logging": {},
     "experimental": {}
+  },
+  "serverInfo": {
+    "name": "codecontext",
+    "version": "2.1.0"
   }
 }
 ```
+
+### SDK Integration Benefits
+
+- **Protocol Compliance**: 100% compatibility with Claude Desktop
+- **Type Safety**: Generic type-safe tool parameter handling
+- **Error Handling**: Structured error responses with proper codes
+- **Performance**: Optimized transport layer with official implementation
 
 ### Error Handling
 
