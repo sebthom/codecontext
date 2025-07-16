@@ -17,7 +17,7 @@ var generateCmd = &cobra.Command{
 This command analyzes the entire repository and creates an intelligent
 context map optimized for AI-powered development tools.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return generateContextMap()
+		return generateContextMap(cmd)
 	},
 }
 
@@ -27,23 +27,32 @@ func init() {
 	generateCmd.Flags().BoolP("watch", "w", false, "enable watch mode for continuous updates")
 	generateCmd.Flags().StringP("format", "f", "markdown", "output format (markdown, json, yaml)")
 
-	// Bind flags to viper
-	viper.BindPFlag("target", generateCmd.Flags().Lookup("target"))
-	viper.BindPFlag("watch", generateCmd.Flags().Lookup("watch"))
-	viper.BindPFlag("format", generateCmd.Flags().Lookup("format"))
+	// Bind flags to viper with error handling
+	if err := viper.BindPFlag("target", generateCmd.Flags().Lookup("target")); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to bind target flag: %v\n", err)
+	}
+	if err := viper.BindPFlag("watch", generateCmd.Flags().Lookup("watch")); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to bind watch flag: %v\n", err)
+	}
+	if err := viper.BindPFlag("format", generateCmd.Flags().Lookup("format")); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to bind format flag: %v\n", err)
+	}
 }
 
-func generateContextMap() error {
+func generateContextMap(cmd *cobra.Command) error {
 	start := time.Now()
 
 	if viper.GetBool("verbose") {
 		fmt.Println("🔍 Starting context map generation...")
 	}
 
-	// Get target directory from flags
-	targetDir := viper.GetString("target")
-	if targetDir == "" {
-		targetDir = "."
+	// Get target directory from flags - try direct flag first, then viper fallback
+	targetDir, err := cmd.Flags().GetString("target")
+	if err != nil || targetDir == "" {
+		targetDir = viper.GetString("target")
+		if targetDir == "" {
+			targetDir = "."
+		}
 	}
 
 	outputFile := viper.GetString("output")
@@ -54,6 +63,8 @@ func generateContextMap() error {
 	if viper.GetBool("verbose") {
 		fmt.Printf("📁 Analyzing directory: %s\n", targetDir)
 		fmt.Printf("📄 Output file: %s\n", outputFile)
+		fmt.Printf("🔍 Target from flag: %s\n", targetDir)
+		fmt.Printf("🔍 Target from viper: %s\n", viper.GetString("target"))
 	}
 
 	// Create graph builder and analyze directory

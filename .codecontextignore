@@ -1,0 +1,50 @@
+# CodeContext Ignore File
+# This file contains patterns for files and directories that should be excluded
+# from semantic analysis and pattern detection
+
+# Build artifacts and generated files
+node_modules/
+dist/
+build/
+target/
+.next/
+.git/
+vendor/
+__pycache__/
+*.log
+*.tmp
+*.cache
+
+# Common IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Dependency directories
+bower_components/
+jspm_packages/
+
+# Coverage reports
+coverage/
+.nyc_output/
+
+# Temporary files
+*.bak
+*.orig
+*.rej
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment files
+.env
+.env.local
+.env.*.local

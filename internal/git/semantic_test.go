@@ -32,17 +32,17 @@ func TestDefaultSemanticConfig(t *testing.T) {
 	if config.AnalysisPeriodDays != 30 {
 		t.Errorf("expected analysis period 30 days, got %d", config.AnalysisPeriodDays)
 	}
-	if config.MinChangeCorrelation != 0.6 {
-		t.Errorf("expected min correlation 0.6, got %f", config.MinChangeCorrelation)
+	if config.MinChangeCorrelation != 0.4 {
+		t.Errorf("expected min correlation 0.4, got %f", config.MinChangeCorrelation)
 	}
-	if config.MinPatternSupport != 0.1 {
-		t.Errorf("expected min support 0.1, got %f", config.MinPatternSupport)
+	if config.MinPatternSupport != 0.05 {
+		t.Errorf("expected min support 0.05, got %f", config.MinPatternSupport)
 	}
-	if config.MinPatternConfidence != 0.6 {
-		t.Errorf("expected min confidence 0.6, got %f", config.MinPatternConfidence)
+	if config.MinPatternConfidence != 0.3 {
+		t.Errorf("expected min confidence 0.3, got %f", config.MinPatternConfidence)
 	}
-	if config.MaxNeighborhoodSize != 10 {
-		t.Errorf("expected max neighborhood size 10, got %d", config.MaxNeighborhoodSize)
+	if config.MaxNeighborhoodSize != 15 {
+		t.Errorf("expected max neighborhood size 15, got %d", config.MaxNeighborhoodSize)
 	}
 	if !config.IncludeTestFiles {
 		t.Error("expected include test files to be true")

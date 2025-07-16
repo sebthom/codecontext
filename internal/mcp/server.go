@@ -11,6 +11,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/nuthan-ms/codecontext/internal/analyzer"
+	"github.com/nuthan-ms/codecontext/internal/git"
 	"github.com/nuthan-ms/codecontext/internal/watcher"
 	"github.com/nuthan-ms/codecontext/pkg/types"
 )
@@ -60,6 +61,13 @@ type GetDependenciesArgs struct {
 
 type WatchChangesArgs struct {
 	Enable bool `json:"enable"`
+}
+
+type GetSemanticNeighborhoodsArgs struct {
+	FilePath     string `json:"file_path,omitempty"`
+	IncludeBasic bool   `json:"include_basic,omitempty"`
+	IncludeQuality bool `json:"include_quality,omitempty"`
+	MaxResults   int    `json:"max_results,omitempty"`
 }
 
 // NewCodeContextMCPServer creates a new MCP server instance
@@ -133,8 +141,15 @@ func (s *CodeContextMCPServer) registerTools() {
 		Name:        "watch_changes",
 		Description: "Enable/disable real-time change notifications",
 	}, s.watchChanges)
+
+	// Tool 7: Get semantic neighborhoods
+	log.Printf("[MCP] Registering tool: get_semantic_neighborhoods")
+	mcp.AddTool(s.server, &mcp.Tool{
+		Name:        "get_semantic_neighborhoods",
+		Description: "Get semantic code neighborhoods using git patterns and hierarchical clustering",
+	}, s.getSemanticNeighborhoods)
 	
-	log.Printf("[MCP] Successfully registered 6 tools")
+	log.Printf("[MCP] Successfully registered 7 tools")
 }
 
 // Tool implementations
@@ -511,6 +526,41 @@ func (s *CodeContextMCPServer) watchChanges(ctx context.Context, cc *mcp.ServerS
 	}
 }
 
+func (s *CodeContextMCPServer) getSemanticNeighborhoods(ctx context.Context, cc *mcp.ServerSession, params *mcp.CallToolParamsFor[GetSemanticNeighborhoodsArgs]) (*mcp.CallToolResultFor[any], error) {
+	start := time.Now()
+	args := params.Arguments
+	log.Printf("[MCP] Tool called: get_semantic_neighborhoods with args: %+v", args)
+
+	// Ensure we have fresh analysis
+	if s.graph == nil {
+		if err := s.refreshAnalysis(); err != nil {
+			log.Printf("[MCP] Failed to refresh analysis: %v", err)
+			return &mcp.CallToolResultFor[any]{
+				Content: []mcp.Content{&mcp.TextContent{Text: "Failed to analyze codebase: " + err.Error()}},
+			}, nil
+		}
+	}
+
+	// Get semantic neighborhoods from metadata
+	semanticData, err := s.getSemanticNeighborhoodsData()
+	if err != nil {
+		log.Printf("[MCP] Failed to get semantic neighborhoods: %v", err)
+		return &mcp.CallToolResultFor[any]{
+			Content: []mcp.Content{&mcp.TextContent{Text: "Failed to get semantic neighborhoods: " + err.Error()}},
+		}, nil
+	}
+
+	// Build response based on arguments
+	response := s.buildSemanticNeighborhoodsResponse(semanticData, args)
+
+	elapsed := time.Since(start)
+	log.Printf("[MCP] Tool completed: get_semantic_neighborhoods (took %v)", elapsed)
+	
+	return &mcp.CallToolResultFor[any]{
+		Content: []mcp.Content{&mcp.TextContent{Text: response}},
+	}, nil
+}
+
 // Helper methods
 
 func (s *CodeContextMCPServer) refreshAnalysis() error {
@@ -523,6 +573,238 @@ func (s *CodeContextMCPServer) refreshAnalysis() error {
 	log.Printf("[MCP] Analysis completed successfully - %d files, %d symbols", len(graph.Files), len(graph.Symbols))
 	s.graph = graph
 	return nil
+}
+
+// getSemanticNeighborhoodsData extracts semantic neighborhoods from the graph metadata
+func (s *CodeContextMCPServer) getSemanticNeighborhoodsData() (*analyzer.SemanticAnalysisResult, error) {
+	if s.graph == nil || s.graph.Metadata == nil || s.graph.Metadata.Configuration == nil {
+		return nil, fmt.Errorf("no graph metadata available")
+	}
+
+	semanticInterface, exists := s.graph.Metadata.Configuration["semantic_neighborhoods"]
+	if !exists {
+		return nil, fmt.Errorf("no semantic neighborhoods data found - ensure this is a git repository")
+	}
+
+	semanticResult, ok := semanticInterface.(*analyzer.SemanticAnalysisResult)
+	if !ok {
+		return nil, fmt.Errorf("invalid semantic neighborhoods data format")
+	}
+
+	return semanticResult, nil
+}
+
+// buildSemanticNeighborhoodsResponse builds the response string for semantic neighborhoods
+func (s *CodeContextMCPServer) buildSemanticNeighborhoodsResponse(data *analyzer.SemanticAnalysisResult, args GetSemanticNeighborhoodsArgs) string {
+	var response strings.Builder
+	
+	response.WriteString("# Semantic Code Neighborhoods Analysis\n\n")
+	
+	// Check if git repository
+	if !data.AnalysisMetadata.IsGitRepository {
+		response.WriteString("❌ **Not a Git Repository**: This directory is not a git repository. Semantic neighborhoods require git history for pattern analysis.\n")
+		return response.String()
+	}
+	
+	// Handle errors
+	if data.Error != "" {
+		response.WriteString(fmt.Sprintf("⚠️ **Analysis Error**: %s\n\n", data.Error))
+	}
+	
+	// Analysis overview
+	metadata := data.AnalysisMetadata
+	response.WriteString("## 📊 Analysis Overview\n\n")
+	response.WriteString("**Git-based pattern analysis with hierarchical clustering:**\n\n")
+	response.WriteString(fmt.Sprintf("- **Analysis Period**: %d days\n", metadata.AnalysisPeriodDays))
+	response.WriteString(fmt.Sprintf("- **Files with Patterns**: %d files\n", metadata.FilesWithPatterns))
+	response.WriteString(fmt.Sprintf("- **Basic Neighborhoods**: %d groups\n", metadata.TotalNeighborhoods))
+	response.WriteString(fmt.Sprintf("- **Clustered Groups**: %d clusters\n", metadata.TotalClusters))
+	response.WriteString(fmt.Sprintf("- **Average Cluster Size**: %.1f files\n", metadata.AverageClusterSize))
+	response.WriteString(fmt.Sprintf("- **Analysis Time**: %v\n", metadata.AnalysisTime))
+	
+	if metadata.QualityScores.OverallQualityRating != "" {
+		response.WriteString(fmt.Sprintf("- **Clustering Quality**: %s\n", metadata.QualityScores.OverallQualityRating))
+	}
+	response.WriteString("\n")
+	
+	// Context recommendations based on file path
+	if args.FilePath != "" {
+		response.WriteString(s.buildFileContextRecommendations(data, args.FilePath))
+	}
+	
+	// Basic neighborhoods (if requested)
+	if args.IncludeBasic && len(data.SemanticNeighborhoods) > 0 {
+		response.WriteString("## 🔍 Basic Semantic Neighborhoods\n\n")
+		response.WriteString(s.buildBasicNeighborhoodsResponse(data.SemanticNeighborhoods, args.MaxResults))
+	}
+	
+	// Clustered neighborhoods (always include if available)
+	if len(data.ClusteredNeighborhoods) > 0 {
+		response.WriteString("## 🎯 Clustered Neighborhoods\n\n")
+		response.WriteString(s.buildClusteredNeighborhoodsResponse(data.ClusteredNeighborhoods, args.MaxResults))
+	}
+	
+	// Quality metrics (if requested)
+	if args.IncludeQuality && len(data.ClusteredNeighborhoods) > 0 {
+		response.WriteString("## 📈 Quality Metrics\n\n")
+		response.WriteString(s.buildQualityMetricsResponse(data))
+	}
+	
+	// No neighborhoods found
+	if len(data.SemanticNeighborhoods) == 0 && len(data.ClusteredNeighborhoods) == 0 {
+		response.WriteString("## 🏷️ No Neighborhoods Found\n\n")
+		response.WriteString("No semantic neighborhoods were detected. This could mean:\n")
+		response.WriteString("- Files don't frequently change together\n")
+		response.WriteString("- Insufficient git history (need at least a few commits)\n")
+		response.WriteString("- Repository primarily contains single-purpose files\n")
+		response.WriteString("- Analysis period too short (default: 30 days)\n")
+	}
+	
+	return response.String()
+}
+
+// buildFileContextRecommendations builds context recommendations for a specific file
+func (s *CodeContextMCPServer) buildFileContextRecommendations(data *analyzer.SemanticAnalysisResult, filePath string) string {
+	var response strings.Builder
+	
+	response.WriteString(fmt.Sprintf("## 🎯 Context Recommendations for `%s`\n\n", filePath))
+	
+	// Find neighborhoods containing this file
+	relatedNeighborhoods := []string{}
+	relatedClusters := []string{}
+	
+	// Check basic neighborhoods
+	for _, neighborhood := range data.SemanticNeighborhoods {
+		for _, file := range neighborhood.Files {
+			if strings.Contains(file, filePath) || strings.Contains(filePath, file) {
+				relatedNeighborhoods = append(relatedNeighborhoods, neighborhood.Name)
+				break
+			}
+		}
+	}
+	
+	// Check clustered neighborhoods
+	for i, clustered := range data.ClusteredNeighborhoods {
+		for _, neighborhood := range clustered.Neighborhoods {
+			for _, file := range neighborhood.Files {
+				if strings.Contains(file, filePath) || strings.Contains(filePath, file) {
+					relatedClusters = append(relatedClusters, fmt.Sprintf("Cluster %d: %s", i+1, clustered.Cluster.Name))
+					break
+				}
+			}
+		}
+	}
+	
+	if len(relatedNeighborhoods) > 0 {
+		response.WriteString("**Related Neighborhoods:**\n")
+		for _, neighborhood := range relatedNeighborhoods {
+			response.WriteString(fmt.Sprintf("- %s\n", neighborhood))
+		}
+		response.WriteString("\n")
+	}
+	
+	if len(relatedClusters) > 0 {
+		response.WriteString("**Related Clusters:**\n")
+		for _, cluster := range relatedClusters {
+			response.WriteString(fmt.Sprintf("- %s\n", cluster))
+		}
+		response.WriteString("\n")
+	}
+	
+	if len(relatedNeighborhoods) == 0 && len(relatedClusters) == 0 {
+		response.WriteString("**No direct relationships found.** This file may be independent or have weak patterns with other files.\n\n")
+	}
+	
+	return response.String()
+}
+
+// buildBasicNeighborhoodsResponse builds the basic neighborhoods response
+func (s *CodeContextMCPServer) buildBasicNeighborhoodsResponse(neighborhoods []git.SemanticNeighborhood, maxResults int) string {
+	var response strings.Builder
+	
+	// Sort by correlation strength
+	sortedNeighborhoods := make([]git.SemanticNeighborhood, len(neighborhoods))
+	copy(sortedNeighborhoods, neighborhoods)
+	
+	limit := len(sortedNeighborhoods)
+	if maxResults > 0 && maxResults < limit {
+		limit = maxResults
+	}
+	
+	for i := 0; i < limit; i++ {
+		neighborhood := sortedNeighborhoods[i]
+		response.WriteString(fmt.Sprintf("### %s\n\n", neighborhood.Name))
+		response.WriteString(fmt.Sprintf("- **Correlation**: %.2f\n", neighborhood.CorrelationStrength))
+		response.WriteString(fmt.Sprintf("- **Changes**: %d\n", neighborhood.ChangeFrequency))
+		response.WriteString(fmt.Sprintf("- **Files**: %d\n", len(neighborhood.Files)))
+		response.WriteString(fmt.Sprintf("- **Last Changed**: %s\n", neighborhood.LastChanged.Format("2006-01-02")))
+		
+		if len(neighborhood.Files) > 0 {
+			response.WriteString("\n**Files:**\n")
+			for _, file := range neighborhood.Files {
+				response.WriteString(fmt.Sprintf("- `%s`\n", file))
+			}
+		}
+		response.WriteString("\n")
+	}
+	
+	return response.String()
+}
+
+// buildClusteredNeighborhoodsResponse builds the clustered neighborhoods response
+func (s *CodeContextMCPServer) buildClusteredNeighborhoodsResponse(clusteredNeighborhoods []git.ClusteredNeighborhood, maxResults int) string {
+	var response strings.Builder
+	
+	limit := len(clusteredNeighborhoods)
+	if maxResults > 0 && maxResults < limit {
+		limit = maxResults
+	}
+	
+	for i := 0; i < limit; i++ {
+		clustered := clusteredNeighborhoods[i]
+		cluster := clustered.Cluster
+		
+		response.WriteString(fmt.Sprintf("### Cluster %d: %s\n\n", i+1, cluster.Name))
+		response.WriteString(fmt.Sprintf("- **Description**: %s\n", cluster.Description))
+		response.WriteString(fmt.Sprintf("- **Size**: %d files\n", cluster.Size))
+		response.WriteString(fmt.Sprintf("- **Strength**: %.3f\n", cluster.Strength))
+		response.WriteString(fmt.Sprintf("- **Silhouette Score**: %.3f\n", clustered.QualityMetrics.SilhouetteScore))
+		response.WriteString(fmt.Sprintf("- **Cohesion**: %.3f\n", cluster.IntraMetrics.Cohesion))
+		
+		if len(cluster.OptimalTasks) > 0 {
+			response.WriteString("\n**Recommended Tasks:**\n")
+			for _, task := range cluster.OptimalTasks {
+				response.WriteString(fmt.Sprintf("- %s\n", task))
+			}
+		}
+		
+		if cluster.RecommendationReason != "" {
+			response.WriteString(fmt.Sprintf("\n**Why**: %s\n", cluster.RecommendationReason))
+		}
+		
+		response.WriteString("\n")
+	}
+	
+	return response.String()
+}
+
+// buildQualityMetricsResponse builds the quality metrics response
+func (s *CodeContextMCPServer) buildQualityMetricsResponse(data *analyzer.SemanticAnalysisResult) string {
+	var response strings.Builder
+	
+	scores := data.AnalysisMetadata.QualityScores
+	
+	response.WriteString("**Overall Clustering Performance:**\n\n")
+	response.WriteString(fmt.Sprintf("- **Average Silhouette Score**: %.3f\n", scores.AverageSilhouetteScore))
+	response.WriteString(fmt.Sprintf("- **Average Davies-Bouldin Index**: %.3f\n", scores.AverageDaviesBouldinIndex))
+	response.WriteString(fmt.Sprintf("- **Quality Rating**: %s\n\n", scores.OverallQualityRating))
+	
+	response.WriteString("**Interpretation:**\n")
+	response.WriteString("- **Silhouette Score**: 0.7+ Excellent, 0.5+ Good, 0.25+ Fair, <0.25 Poor\n")
+	response.WriteString("- **Davies-Bouldin**: Lower values indicate better clustering\n")
+	response.WriteString("- **Algorithm**: Hierarchical clustering with Ward linkage\n")
+	
+	return response.String()
 }
 
 // Run starts the MCP server

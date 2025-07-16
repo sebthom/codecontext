@@ -217,43 +217,6 @@ func TestFindConnectedComponent(t *testing.T) {
 	}
 }
 
-func TestGeneratePatternName(t *testing.T) {
-	tests := []struct {
-		name     string
-		files    []string
-		expected string
-	}{
-		{
-			name:     "empty files",
-			files:    []string{},
-			expected: "empty-pattern",
-		},
-		{
-			name:     "single file",
-			files:    []string{"main.go"},
-			expected: "main-pattern",
-		},
-		{
-			name:     "common prefix",
-			files:    []string{"internal/auth/handler.go", "internal/auth/middleware.go"},
-			expected: "internal-auth-group",
-		},
-		{
-			name:     "no common prefix",
-			files:    []string{"main.go", "README.md"},
-			expected: "main-pattern",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := generatePatternName(tt.files)
-			if result != tt.expected {
-				t.Errorf("expected %s, got %s", tt.expected, result)
-			}
-		})
-	}
-}
 
 func TestGenerateModuleName(t *testing.T) {
 	tests := []struct {

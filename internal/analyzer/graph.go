@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/nuthan-ms/codecontext/internal/git"
 	"github.com/nuthan-ms/codecontext/internal/parser"
 	"github.com/nuthan-ms/codecontext/pkg/types"
 )
@@ -69,6 +70,16 @@ func (gb *GraphBuilder) AnalyzeDirectory(targetDir string) (*types.CodeGraph, er
 
 	// Build relationships between files
 	gb.buildFileRelationships()
+
+	// Build semantic neighborhoods if git repository
+	semanticResult, err := gb.buildSemanticNeighborhoods(targetDir)
+	if err == nil && semanticResult != nil {
+		// Add semantic analysis results to metadata
+		if gb.graph.Metadata.Configuration == nil {
+			gb.graph.Metadata.Configuration = make(map[string]interface{})
+		}
+		gb.graph.Metadata.Configuration["semantic_neighborhoods"] = semanticResult
+	}
 
 	// Update metadata
 	gb.graph.Metadata.TotalFiles = len(gb.graph.Files)
@@ -274,5 +285,196 @@ func (gb *GraphBuilder) GetFileStats() map[string]interface{} {
 		"totalSymbols": gb.graph.Metadata.TotalSymbols,
 		"languages":    gb.graph.Metadata.Languages,
 		"analysisTime": gb.graph.Metadata.AnalysisTime,
+	}
+}
+
+// SemanticAnalysisResult contains the results of semantic neighborhood analysis
+type SemanticAnalysisResult struct {
+	SemanticNeighborhoods  []git.SemanticNeighborhood  `json:"semantic_neighborhoods"`
+	EnhancedNeighborhoods  []git.EnhancedNeighborhood  `json:"enhanced_neighborhoods"`
+	ClusteredNeighborhoods []git.ClusteredNeighborhood `json:"clustered_neighborhoods"`
+	AnalysisMetadata       SemanticAnalysisMetadata    `json:"analysis_metadata"`
+	Error                  string                      `json:"error,omitempty"`
+}
+
+// SemanticAnalysisMetadata contains metadata about the semantic analysis
+type SemanticAnalysisMetadata struct {
+	IsGitRepository       bool          `json:"is_git_repository"`
+	AnalysisPeriodDays    int           `json:"analysis_period_days"`
+	TotalNeighborhoods    int           `json:"total_neighborhoods"`
+	TotalClusters         int           `json:"total_clusters"`
+	FilesWithPatterns     int           `json:"files_with_patterns"`
+	AverageClusterSize    float64       `json:"average_cluster_size"`
+	AnalysisTime          time.Duration `json:"analysis_time"`
+	QualityScores         QualityScores `json:"quality_scores"`
+}
+
+// QualityScores contains overall quality metrics for the clustering
+type QualityScores struct {
+	AverageSilhouetteScore    float64 `json:"average_silhouette_score"`
+	AverageDaviesBouldinIndex float64 `json:"average_davies_bouldin_index"`
+	OverallQualityRating      string  `json:"overall_quality_rating"`
+}
+
+// buildSemanticNeighborhoods analyzes git patterns and builds semantic neighborhoods
+func (gb *GraphBuilder) buildSemanticNeighborhoods(targetDir string) (*SemanticAnalysisResult, error) {
+	start := time.Now()
+	
+	// Initialize git analyzer
+	gitAnalyzer, err := git.NewGitAnalyzer(targetDir)
+	if err != nil {
+		return &SemanticAnalysisResult{
+			Error: fmt.Sprintf("Failed to create git analyzer: %v", err),
+			AnalysisMetadata: SemanticAnalysisMetadata{
+				IsGitRepository: false,
+				AnalysisTime:    time.Since(start),
+			},
+		}, nil
+	}
+	
+	// Check if this is a git repository
+	if !gitAnalyzer.IsGitRepository() {
+		return &SemanticAnalysisResult{
+			AnalysisMetadata: SemanticAnalysisMetadata{
+				IsGitRepository: false,
+				AnalysisTime:    time.Since(start),
+			},
+		}, nil
+	}
+
+	// Create semantic analyzer with default config
+	semanticConfig := git.DefaultSemanticConfig()
+	semanticAnalyzer, err := git.NewSemanticAnalyzer(targetDir, semanticConfig)
+	if err != nil {
+		return &SemanticAnalysisResult{
+			Error: fmt.Sprintf("Failed to create semantic analyzer: %v", err),
+			AnalysisMetadata: SemanticAnalysisMetadata{
+				IsGitRepository: true,
+				AnalysisTime:    time.Since(start),
+			},
+		}, nil
+	}
+
+	// Perform semantic analysis
+	analysisResult, err := semanticAnalyzer.AnalyzeRepository()
+	if err != nil {
+		return &SemanticAnalysisResult{
+			Error: fmt.Sprintf("Failed to analyze repository: %v", err),
+			AnalysisMetadata: SemanticAnalysisMetadata{
+				IsGitRepository: true,
+				AnalysisTime:    time.Since(start),
+			},
+		}, nil
+	}
+
+	// Build enhanced neighborhoods using graph integration
+	integrationConfig := git.DefaultIntegrationConfig()
+	graphIntegration := git.NewGraphIntegration(semanticAnalyzer, gb.graph, integrationConfig)
+
+	enhancedNeighborhoods, err := graphIntegration.BuildEnhancedNeighborhoods()
+	if err != nil {
+		return &SemanticAnalysisResult{
+			SemanticNeighborhoods: analysisResult.Neighborhoods,
+			Error:                 fmt.Sprintf("Failed to build enhanced neighborhoods: %v", err),
+			AnalysisMetadata: SemanticAnalysisMetadata{
+				IsGitRepository:    true,
+				AnalysisPeriodDays: semanticConfig.AnalysisPeriodDays,
+				TotalNeighborhoods: len(analysisResult.Neighborhoods),
+				FilesWithPatterns:  analysisResult.AnalysisSummary.ActiveFiles,
+				AnalysisTime:       time.Since(start),
+			},
+		}, nil
+	}
+
+	// Build clustered neighborhoods
+	clusteredNeighborhoods, err := graphIntegration.BuildClusteredNeighborhoods()
+	if err != nil {
+		return &SemanticAnalysisResult{
+			SemanticNeighborhoods: analysisResult.Neighborhoods,
+			EnhancedNeighborhoods: enhancedNeighborhoods,
+			Error:                 fmt.Sprintf("Failed to build clustered neighborhoods: %v", err),
+			AnalysisMetadata: SemanticAnalysisMetadata{
+				IsGitRepository:    true,
+				AnalysisPeriodDays: semanticConfig.AnalysisPeriodDays,
+				TotalNeighborhoods: len(analysisResult.Neighborhoods),
+				FilesWithPatterns:  analysisResult.AnalysisSummary.ActiveFiles,
+				AnalysisTime:       time.Since(start),
+			},
+		}, nil
+	}
+
+	// Calculate quality scores
+	qualityScores := gb.calculateQualityScores(clusteredNeighborhoods)
+	
+	// Calculate average cluster size
+	avgClusterSize := 0.0
+	if len(clusteredNeighborhoods) > 0 {
+		totalSize := 0
+		for _, cluster := range clusteredNeighborhoods {
+			totalSize += cluster.Cluster.Size
+		}
+		avgClusterSize = float64(totalSize) / float64(len(clusteredNeighborhoods))
+	}
+
+	return &SemanticAnalysisResult{
+		SemanticNeighborhoods:  analysisResult.Neighborhoods,
+		EnhancedNeighborhoods:  enhancedNeighborhoods,
+		ClusteredNeighborhoods: clusteredNeighborhoods,
+		AnalysisMetadata: SemanticAnalysisMetadata{
+			IsGitRepository:    true,
+			AnalysisPeriodDays: semanticConfig.AnalysisPeriodDays,
+			TotalNeighborhoods: len(analysisResult.Neighborhoods),
+			TotalClusters:      len(clusteredNeighborhoods),
+			FilesWithPatterns:  analysisResult.AnalysisSummary.ActiveFiles,
+			AverageClusterSize: avgClusterSize,
+			AnalysisTime:       time.Since(start),
+			QualityScores:      qualityScores,
+		},
+	}, nil
+}
+
+// calculateQualityScores calculates overall quality metrics from clustered neighborhoods
+func (gb *GraphBuilder) calculateQualityScores(clusteredNeighborhoods []git.ClusteredNeighborhood) QualityScores {
+	if len(clusteredNeighborhoods) == 0 {
+		return QualityScores{
+			OverallQualityRating: "No clusters",
+		}
+	}
+
+	totalSilhouette := 0.0
+	totalDaviesBouldin := 0.0
+	validClusters := 0
+
+	for _, cluster := range clusteredNeighborhoods {
+		if cluster.QualityMetrics.SilhouetteScore > 0 {
+			totalSilhouette += cluster.QualityMetrics.SilhouetteScore
+			totalDaviesBouldin += cluster.QualityMetrics.DaviesBouldinIndex
+			validClusters++
+		}
+	}
+
+	if validClusters == 0 {
+		return QualityScores{
+			OverallQualityRating: "Insufficient data",
+		}
+	}
+
+	avgSilhouette := totalSilhouette / float64(validClusters)
+	avgDaviesBouldin := totalDaviesBouldin / float64(validClusters)
+
+	// Determine overall quality rating
+	qualityRating := "Poor"
+	if avgSilhouette > 0.7 {
+		qualityRating = "Excellent"
+	} else if avgSilhouette > 0.5 {
+		qualityRating = "Good"
+	} else if avgSilhouette > 0.25 {
+		qualityRating = "Fair"
+	}
+
+	return QualityScores{
+		AverageSilhouetteScore:    avgSilhouette,
+		AverageDaviesBouldinIndex: avgDaviesBouldin,
+		OverallQualityRating:      qualityRating,
 	}
 }

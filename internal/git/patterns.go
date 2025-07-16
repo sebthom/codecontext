@@ -1,7 +1,9 @@
 package git
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -42,18 +44,24 @@ type ModuleGroup struct {
 
 // PatternDetector analyzes git history to detect change patterns
 type PatternDetector struct {
-	analyzer    *GitAnalyzer
-	minSupport  float64 // Minimum support threshold for patterns
-	minConfidence float64 // Minimum confidence threshold for patterns
+	analyzer       *GitAnalyzer
+	minSupport     float64 // Minimum support threshold for patterns
+	minConfidence  float64 // Minimum confidence threshold for patterns
+	excludePatterns []string // Patterns to exclude from analysis
 }
 
 // NewPatternDetector creates a new pattern detector
 func NewPatternDetector(analyzer *GitAnalyzer) *PatternDetector {
-	return &PatternDetector{
+	pd := &PatternDetector{
 		analyzer:      analyzer,
 		minSupport:    0.1,  // 10% minimum support
 		minConfidence: 0.6,  // 60% minimum confidence
 	}
+	
+	// Load exclude patterns from .codecontextignore file
+	pd.loadExcludePatterns()
+	
+	return pd
 }
 
 // SetThresholds sets the minimum support and confidence thresholds
@@ -62,58 +70,153 @@ func (pd *PatternDetector) SetThresholds(minSupport, minConfidence float64) {
 	pd.minConfidence = minConfidence
 }
 
-// DetectChangePatterns finds recurring change patterns in the git history
+// loadExcludePatterns loads patterns from .codecontextignore file
+func (pd *PatternDetector) loadExcludePatterns() {
+	// Default exclude patterns (fallback)
+	defaultPatterns := []string{
+		"node_modules/",
+		"dist/",
+		"build/",
+		"target/",
+		".next/",
+		".git/",
+		"vendor/",
+		"__pycache__/",
+		"*.log",
+		"*.tmp",
+		"*.cache",
+	}
+	
+	// Try to load from .codecontextignore file
+	ignoreFile := ".codecontextignore"
+	if _, err := os.Stat(ignoreFile); err == nil {
+		patterns, err := pd.readIgnoreFile(ignoreFile)
+		if err == nil {
+			pd.excludePatterns = patterns
+			return
+		}
+	}
+	
+	// Try to load from repository root
+	repoRoot := pd.analyzer.repoPath
+	ignoreFile = filepath.Join(repoRoot, ".codecontextignore")
+	if _, err := os.Stat(ignoreFile); err == nil {
+		patterns, err := pd.readIgnoreFile(ignoreFile)
+		if err == nil {
+			pd.excludePatterns = patterns
+			return
+		}
+	}
+	
+	// Use default patterns if no ignore file found
+	pd.excludePatterns = defaultPatterns
+}
+
+// readIgnoreFile reads patterns from an ignore file
+func (pd *PatternDetector) readIgnoreFile(filename string) ([]string, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	
+	var patterns []string
+	scanner := bufio.NewScanner(file)
+	
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		
+		// Skip empty lines and comments
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		
+		patterns = append(patterns, line)
+	}
+	
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+	
+	return patterns, nil
+}
+
+// matchesPattern checks if a file matches a gitignore-style pattern
+func (pd *PatternDetector) matchesPattern(file, pattern string) bool {
+	// Handle directory patterns ending with /
+	if strings.HasSuffix(pattern, "/") {
+		return strings.Contains(file, pattern)
+	}
+	
+	// Handle wildcard patterns
+	if strings.Contains(pattern, "*") {
+		matched, err := filepath.Match(pattern, filepath.Base(file))
+		if err == nil && matched {
+			return true
+		}
+		// Also check the full path for wildcard patterns
+		matched, err = filepath.Match(pattern, file)
+		if err == nil && matched {
+			return true
+		}
+	}
+	
+	// Handle exact matches and substring matches
+	if strings.Contains(file, pattern) {
+		return true
+	}
+	
+	return false
+}
+
+// DetectChangePatterns finds recurring change patterns in the git history using simplified approach
 func (pd *PatternDetector) DetectChangePatterns(days int) ([]ChangePattern, error) {
 	commits, err := pd.analyzer.GetCommitHistory(days)
 	if err != nil {
 		return nil, err
 	}
 
-	// Group commits by similar file sets
-	patterns := make(map[string]*ChangePattern)
-	
-	for _, commit := range commits {
-		if len(commit.Files) < 2 {
-			continue // Skip single-file commits
-		}
-
-		// Sort files to create a consistent pattern key
-		sortedFiles := make([]string, len(commit.Files))
-		copy(sortedFiles, commit.Files)
-		sort.Strings(sortedFiles)
-		
-		// Create pattern key based on file set
-		key := strings.Join(sortedFiles, "|")
-		
-		if pattern, exists := patterns[key]; exists {
-			pattern.Frequency++
-			if commit.Timestamp.After(pattern.LastOccurrence) {
-				pattern.LastOccurrence = commit.Timestamp
-			}
-		} else {
-			patterns[key] = &ChangePattern{
-				Name:           generatePatternName(sortedFiles),
-				Files:          sortedFiles,
-				Frequency:      1,
-				LastOccurrence: commit.Timestamp,
-				Metadata:       make(map[string]string),
-			}
-		}
-	}
-
-	// Filter patterns by support and calculate confidence
-	var result []ChangePattern
+	// Use simplified pattern detection approach
 	totalCommits := len(commits)
 	
-	for _, pattern := range patterns {
-		support := float64(pattern.Frequency) / float64(totalCommits)
-		if support >= pd.minSupport {
-			pattern.Confidence = pd.calculateConfidence(pattern, commits)
-			if pattern.Confidence >= pd.minConfidence {
-				pattern.AvgInterval = pd.calculateAvgInterval(pattern, commits)
-				result = append(result, *pattern)
-			}
+	// Create simple patterns detector
+	detector := NewSimplePatternsDetector(pd.minSupport, pd.minConfidence)
+	detector.SetFileFilter(pd.shouldIncludeFile)
+	
+	// Mine frequent patterns
+	itemsets, err := detector.MineSimplePatterns(commits)
+	if err != nil {
+		return nil, err
+	}
+	
+	// Convert frequent itemsets to change patterns
+	var result []ChangePattern
+	for _, itemset := range itemsets {
+		// Skip single-item patterns
+		if len(itemset.Items) < 2 {
+			continue
 		}
+		
+		// Calculate average interval between occurrences
+		avgInterval := pd.calculateAvgIntervalForFiles(itemset.Items, commits)
+		
+		// Create change pattern
+		pattern := ChangePattern{
+			Name:           SimplePatternName(itemset.Items),
+			Files:          itemset.Items,
+			Frequency:      itemset.Frequency,
+			Confidence:     itemset.Confidence,
+			LastOccurrence: itemset.LastSeen,
+			AvgInterval:    avgInterval,
+			Metadata:       make(map[string]string),
+		}
+		
+		// Add metadata
+		pattern.Metadata["support"] = fmt.Sprintf("%.3f", float64(itemset.Support)/float64(totalCommits))
+		pattern.Metadata["algorithm"] = "Simple-Pairs"
+		pattern.Metadata["file_count"] = fmt.Sprintf("%d", len(itemset.Items))
+		
+		result = append(result, pattern)
 	}
 
 	// Sort by frequency (most common first)
@@ -122,6 +225,93 @@ func (pd *PatternDetector) DetectChangePatterns(days int) ([]ChangePattern, erro
 	})
 
 	return result, nil
+}
+
+// shouldIncludeFile determines if a file should be included in pattern analysis
+func (pd *PatternDetector) shouldIncludeFile(file string) bool {
+	// Exclude hidden files and directories (except .codecontextignore)
+	if strings.HasPrefix(file, ".") && file != ".codecontextignore" {
+		return false
+	}
+	
+	// Check against exclude patterns from .codecontextignore file
+	for _, pattern := range pd.excludePatterns {
+		if pd.matchesPattern(file, pattern) {
+			return false
+		}
+	}
+	
+	// Include source files
+	sourceExtensions := []string{
+		".go", ".js", ".ts", ".jsx", ".tsx", ".py", ".java", ".c", ".cpp", ".h", ".hpp",
+		".rb", ".php", ".swift", ".kt", ".scala", ".rs", ".dart", ".vue", ".svelte",
+	}
+	
+	for _, ext := range sourceExtensions {
+		if strings.HasSuffix(file, ext) {
+			return true
+		}
+	}
+	
+	// Include configuration files
+	configFiles := []string{
+		"package.json", "Cargo.toml", "go.mod", "pom.xml", "build.gradle",
+		"Dockerfile", "docker-compose.yml", "Makefile", "CMakeLists.txt",
+	}
+	
+	fileName := filepath.Base(file)
+	for _, configFile := range configFiles {
+		if fileName == configFile {
+			return true
+		}
+	}
+	
+	return false
+}
+
+// calculateAvgIntervalForFiles calculates average interval between occurrences of a file set
+func (pd *PatternDetector) calculateAvgIntervalForFiles(files []string, commits []CommitInfo) time.Duration {
+	var occurrences []time.Time
+	
+	// Find all commits that contain all files
+	for _, commit := range commits {
+		containsAll := true
+		for _, file := range files {
+			found := false
+			for _, commitFile := range commit.Files {
+				if commitFile == file {
+					found = true
+					break
+				}
+			}
+			if !found {
+				containsAll = false
+				break
+			}
+		}
+		
+		if containsAll {
+			occurrences = append(occurrences, commit.Timestamp)
+		}
+	}
+	
+	// Calculate average interval
+	if len(occurrences) <= 1 {
+		return 0
+	}
+	
+	// Sort occurrences
+	sort.Slice(occurrences, func(i, j int) bool {
+		return occurrences[i].Before(occurrences[j])
+	})
+	
+	// Calculate intervals
+	var totalInterval time.Duration
+	for i := 1; i < len(occurrences); i++ {
+		totalInterval += occurrences[i].Sub(occurrences[i-1])
+	}
+	
+	return totalInterval / time.Duration(len(occurrences)-1)
 }
 
 // DetectFileRelationships finds relationships between files based on change patterns
@@ -383,27 +573,6 @@ func (pd *PatternDetector) buildModuleGroup(files []string, changeFreq map[strin
 }
 
 // Helper functions
-func generatePatternName(files []string) string {
-	if len(files) == 0 {
-		return "empty-pattern"
-	}
-	
-	// For single file, use file name without extension
-	if len(files) == 1 {
-		return strings.TrimSuffix(files[0], filepath.Ext(files[0])) + "-pattern"
-	}
-	
-	// Try to find common prefix or directory
-	commonPrefix := findCommonPrefix(files)
-	if commonPrefix != "" {
-		// Clean up the prefix by removing trailing slashes and replacing slashes with dashes
-		commonPrefix = strings.TrimRight(commonPrefix, "/")
-		return strings.ReplaceAll(commonPrefix, "/", "-") + "-group"
-	}
-	
-	// Use first file as base
-	return strings.TrimSuffix(files[0], filepath.Ext(files[0])) + "-pattern"
-}
 
 func generateModuleName(files []string) string {
 	if len(files) == 0 {

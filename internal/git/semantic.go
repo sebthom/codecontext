@@ -26,14 +26,14 @@ type SemanticConfig struct {
 	IncludeConfigFiles    bool    `json:"include_config_files"`
 }
 
-// DefaultSemanticConfig returns default configuration
+// DefaultSemanticConfig returns default configuration with optimized thresholds
 func DefaultSemanticConfig() *SemanticConfig {
 	return &SemanticConfig{
 		AnalysisPeriodDays:    30,
-		MinChangeCorrelation:  0.6,
-		MinPatternSupport:     0.1,
-		MinPatternConfidence:  0.6,
-		MaxNeighborhoodSize:   10,
+		MinChangeCorrelation:  0.4,    // Reduced from 0.6 to 0.4 for more flexibility
+		MinPatternSupport:     0.05,   // Reduced from 0.1 to 0.05 (5% of commits)
+		MinPatternConfidence:  0.3,    // Reduced from 0.6 to 0.3 for FP-Growth
+		MaxNeighborhoodSize:   15,     // Increased from 10 to 15 for larger patterns
 		IncludeTestFiles:      true,
 		IncludeDocFiles:       false,
 		IncludeConfigFiles:    false,

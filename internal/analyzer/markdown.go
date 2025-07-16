@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/nuthan-ms/codecontext/internal/git"
 	"github.com/nuthan-ms/codecontext/pkg/types"
 )
 
@@ -50,6 +51,10 @@ func (mg *MarkdownGenerator) GenerateContextMap() string {
 
 	// Relationship Analysis
 	sb.WriteString(mg.generateRelationshipAnalysis())
+	sb.WriteString("\n\n")
+
+	// Semantic Neighborhoods Analysis
+	sb.WriteString(mg.generateSemanticNeighborhoods())
 	sb.WriteString("\n\n")
 
 	// Project Structure
@@ -499,4 +504,244 @@ func (mg *MarkdownGenerator) getSymbolIcon(symbolType types.SymbolType) string {
 	default:
 		return "🔹"
 	}
+}
+
+// generateSemanticNeighborhoods creates the semantic neighborhoods analysis section
+func (mg *MarkdownGenerator) generateSemanticNeighborhoods() string {
+	var sb strings.Builder
+	sb.WriteString("## 🏘️ Semantic Code Neighborhoods\n\n")
+
+	// Check if semantic neighborhoods data is available
+	if mg.graph.Metadata.Configuration == nil {
+		sb.WriteString("*Semantic neighborhoods analysis not available (requires git repository).*\n")
+		return sb.String()
+	}
+
+	semanticInterface, exists := mg.graph.Metadata.Configuration["semantic_neighborhoods"]
+	if !exists {
+		sb.WriteString("*Semantic neighborhoods data not found.*\n")
+		return sb.String()
+	}
+
+	semanticResult, ok := semanticInterface.(*SemanticAnalysisResult)
+	if !ok {
+		sb.WriteString("*Invalid semantic neighborhoods data format.*\n")
+		return sb.String()
+	}
+
+	// Check if git repository
+	if !semanticResult.AnalysisMetadata.IsGitRepository {
+		sb.WriteString("*This directory is not a git repository. Semantic neighborhoods require git history for pattern analysis.*\n")
+		return sb.String()
+	}
+
+	// Handle analysis errors
+	if semanticResult.Error != "" {
+		sb.WriteString(fmt.Sprintf("⚠️ **Analysis Error**: %s\n\n", semanticResult.Error))
+		// Continue with available data
+	}
+
+	// Analysis overview
+	sb.WriteString(mg.generateSemanticOverview(semanticResult))
+	sb.WriteString("\n")
+
+	// Basic semantic neighborhoods
+	if len(semanticResult.SemanticNeighborhoods) > 0 {
+		sb.WriteString(mg.generateBasicNeighborhoods(semanticResult.SemanticNeighborhoods))
+		sb.WriteString("\n")
+	}
+
+	// Enhanced neighborhoods with clustering
+	if len(semanticResult.ClusteredNeighborhoods) > 0 {
+		sb.WriteString(mg.generateClusteredNeighborhoods(semanticResult.ClusteredNeighborhoods))
+		sb.WriteString("\n")
+	}
+
+	// Quality metrics
+	if len(semanticResult.ClusteredNeighborhoods) > 0 {
+		sb.WriteString(mg.generateClusteringQualityMetrics(semanticResult))
+		sb.WriteString("\n")
+	}
+
+	return sb.String()
+}
+
+// generateSemanticOverview creates the semantic analysis overview
+func (mg *MarkdownGenerator) generateSemanticOverview(result *SemanticAnalysisResult) string {
+	var sb strings.Builder
+	
+	sb.WriteString("### 📊 Analysis Overview\n\n")
+	sb.WriteString("This analysis uses **git history patterns** and **hierarchical clustering** to identify semantic code neighborhoods:\n\n")
+	
+	metadata := result.AnalysisMetadata
+	sb.WriteString(fmt.Sprintf("- **Analysis Period**: %d days\n", metadata.AnalysisPeriodDays))
+	sb.WriteString(fmt.Sprintf("- **Files with Patterns**: %d files\n", metadata.FilesWithPatterns))
+	sb.WriteString(fmt.Sprintf("- **Basic Neighborhoods**: %d groups\n", metadata.TotalNeighborhoods))
+	sb.WriteString(fmt.Sprintf("- **Clustered Groups**: %d clusters\n", metadata.TotalClusters))
+	sb.WriteString(fmt.Sprintf("- **Average Cluster Size**: %.1f files\n", metadata.AverageClusterSize))
+	sb.WriteString(fmt.Sprintf("- **Analysis Time**: %v\n", metadata.AnalysisTime))
+	
+	if metadata.QualityScores.OverallQualityRating != "" {
+		sb.WriteString(fmt.Sprintf("- **Clustering Quality**: %s\n", metadata.QualityScores.OverallQualityRating))
+	}
+	
+	sb.WriteString("\n")
+	
+	return sb.String()
+}
+
+// generateBasicNeighborhoods creates the basic semantic neighborhoods section
+func (mg *MarkdownGenerator) generateBasicNeighborhoods(neighborhoods []git.SemanticNeighborhood) string {
+	var sb strings.Builder
+	
+	sb.WriteString("### 🔍 Semantic Neighborhoods\n\n")
+	sb.WriteString("Files grouped by git change patterns and correlation:\n\n")
+	
+	if len(neighborhoods) == 0 {
+		sb.WriteString("*No semantic neighborhoods detected.*\n")
+		return sb.String()
+	}
+	
+	// Sort neighborhoods by correlation strength
+	sortedNeighborhoods := make([]git.SemanticNeighborhood, len(neighborhoods))
+	copy(sortedNeighborhoods, neighborhoods)
+	sort.Slice(sortedNeighborhoods, func(i, j int) bool {
+		return sortedNeighborhoods[i].CorrelationStrength > sortedNeighborhoods[j].CorrelationStrength
+	})
+	
+	for i, neighborhood := range sortedNeighborhoods {
+		if i >= 10 { // Limit to top 10 for readability
+			break
+		}
+		
+		sb.WriteString(fmt.Sprintf("#### %s\n\n", neighborhood.Name))
+		sb.WriteString(fmt.Sprintf("- **Correlation Strength**: %.2f\n", neighborhood.CorrelationStrength))
+		sb.WriteString(fmt.Sprintf("- **Change Frequency**: %d changes\n", neighborhood.ChangeFrequency))
+		sb.WriteString(fmt.Sprintf("- **Last Changed**: %s\n", neighborhood.LastChanged.Format("2006-01-02")))
+		sb.WriteString(fmt.Sprintf("- **Files**: %d files\n", len(neighborhood.Files)))
+		
+		// Show file list
+		if len(neighborhood.Files) > 0 {
+			sb.WriteString("\n**Files in this neighborhood:**\n")
+			for _, file := range neighborhood.Files {
+				fileName := filepath.Base(file)
+				sb.WriteString(fmt.Sprintf("- `%s`\n", fileName))
+			}
+		}
+		
+		// Show common operations
+		if len(neighborhood.CommonOperations) > 0 {
+			sb.WriteString("\n**Common Operations:**\n")
+			for _, operation := range neighborhood.CommonOperations {
+				sb.WriteString(fmt.Sprintf("- %s\n", operation))
+			}
+		}
+		
+		sb.WriteString("\n")
+	}
+	
+	return sb.String()
+}
+
+// generateClusteredNeighborhoods creates the clustered neighborhoods section
+func (mg *MarkdownGenerator) generateClusteredNeighborhoods(clusteredNeighborhoods []git.ClusteredNeighborhood) string {
+	var sb strings.Builder
+	
+	sb.WriteString("### 🎯 Advanced Clustering Analysis\n\n")
+	sb.WriteString("Neighborhoods grouped using **hierarchical clustering with Ward linkage**:\n\n")
+	
+	if len(clusteredNeighborhoods) == 0 {
+		sb.WriteString("*No clustered neighborhoods available.*\n")
+		return sb.String()
+	}
+	
+	// Sort by cluster size (descending)
+	sortedClusters := make([]git.ClusteredNeighborhood, len(clusteredNeighborhoods))
+	copy(sortedClusters, clusteredNeighborhoods)
+	sort.Slice(sortedClusters, func(i, j int) bool {
+		return sortedClusters[i].Cluster.Size > sortedClusters[j].Cluster.Size
+	})
+	
+	for i, clustered := range sortedClusters {
+		cluster := clustered.Cluster
+		
+		sb.WriteString(fmt.Sprintf("#### Cluster %d: %s\n\n", i+1, cluster.Name))
+		sb.WriteString(fmt.Sprintf("- **Description**: %s\n", cluster.Description))
+		sb.WriteString(fmt.Sprintf("- **Size**: %d files\n", cluster.Size))
+		sb.WriteString(fmt.Sprintf("- **Strength**: %.3f\n", cluster.Strength))
+		
+		// Quality metrics
+		metrics := clustered.QualityMetrics
+		sb.WriteString(fmt.Sprintf("- **Silhouette Score**: %.3f\n", metrics.SilhouetteScore))
+		sb.WriteString(fmt.Sprintf("- **Davies-Bouldin Index**: %.3f\n", metrics.DaviesBouldinIndex))
+		
+		// Intra-cluster metrics
+		intra := cluster.IntraMetrics
+		sb.WriteString(fmt.Sprintf("- **Cohesion**: %.3f\n", intra.Cohesion))
+		sb.WriteString(fmt.Sprintf("- **Density**: %.3f\n", intra.Density))
+		
+		// Optimal tasks
+		if len(cluster.OptimalTasks) > 0 {
+			sb.WriteString("\n**Recommended Tasks:**\n")
+			for _, task := range cluster.OptimalTasks {
+				sb.WriteString(fmt.Sprintf("- %s\n", task))
+			}
+		}
+		
+		// Recommendation reason
+		if cluster.RecommendationReason != "" {
+			sb.WriteString(fmt.Sprintf("\n**Why**: %s\n", cluster.RecommendationReason))
+		}
+		
+		// Show files in cluster
+		if len(clustered.Neighborhoods) > 0 {
+			sb.WriteString("\n**Files in this cluster:**\n")
+			allFiles := make(map[string]bool)
+			for _, neighborhood := range clustered.Neighborhoods {
+				for _, file := range neighborhood.Files {
+					if !allFiles[file] {
+						fileName := filepath.Base(file)
+						sb.WriteString(fmt.Sprintf("- `%s`\n", fileName))
+						allFiles[file] = true
+					}
+				}
+			}
+		}
+		
+		sb.WriteString("\n")
+	}
+	
+	return sb.String()
+}
+
+// generateClusteringQualityMetrics creates the clustering quality metrics section
+func (mg *MarkdownGenerator) generateClusteringQualityMetrics(result *SemanticAnalysisResult) string {
+	var sb strings.Builder
+	
+	sb.WriteString("### 📈 Clustering Quality Assessment\n\n")
+	
+	scores := result.AnalysisMetadata.QualityScores
+	
+	sb.WriteString("**Overall Clustering Performance:**\n\n")
+	sb.WriteString(fmt.Sprintf("- **Average Silhouette Score**: %.3f\n", scores.AverageSilhouetteScore))
+	sb.WriteString(fmt.Sprintf("- **Average Davies-Bouldin Index**: %.3f\n", scores.AverageDaviesBouldinIndex))
+	sb.WriteString(fmt.Sprintf("- **Overall Quality Rating**: %s\n\n", scores.OverallQualityRating))
+	
+	// Quality interpretation
+	sb.WriteString("**Quality Metrics Interpretation:**\n\n")
+	sb.WriteString("- **Silhouette Score**: Measures how similar files are to their own cluster vs. other clusters\n")
+	sb.WriteString("  - Range: -1 to 1 (higher is better)\n")
+	sb.WriteString("  - >0.7: Excellent clustering, >0.5: Good, >0.25: Fair, <0.25: Poor\n")
+	sb.WriteString("- **Davies-Bouldin Index**: Measures cluster separation and compactness\n")
+	sb.WriteString("  - Range: 0+ (lower is better)\n")
+	sb.WriteString("  - Values closer to 0 indicate better clustering\n\n")
+	
+	// Algorithm information
+	sb.WriteString("**Clustering Algorithm:**\n\n")
+	sb.WriteString("- **Method**: Hierarchical Clustering with Ward Linkage\n")
+	sb.WriteString("- **Features**: Git patterns + dependency analysis + structural similarity\n")
+	sb.WriteString("- **Optimization**: Elbow method for optimal cluster count\n")
+	sb.WriteString("- **Quality**: Real-time silhouette and Davies-Bouldin scoring\n")
+	
+	return sb.String()
 }
