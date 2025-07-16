@@ -28,6 +28,7 @@ CodeContext is an automated repository mapping system that generates intelligent
 - **Token Optimization**: Intelligent context reduction while preserving code semantics ✅ IMPLEMENTED
 - **MCP Server Integration**: Real-time AI integration with Claude Desktop ✅ IMPLEMENTED
 - **Semantic Code Neighborhoods**: Git-based pattern detection for AI context recommendations ✅ IMPLEMENTED
+- **Advanced Clustering Algorithms**: Hierarchical clustering with Ward linkage for neighborhood grouping ✅ IMPLEMENTED
 
 ## Architecture Principles
 
@@ -84,6 +85,7 @@ CodeContext is an automated repository mapping system that generates intelligent
 │ - Git Analyzer  │ - Pattern Detect│ - Semantic Analyzer         │
 │ - Repo Info     │ - File Relations│ - Context Recommender       │
 │ - Change History│ - Module Groups │ - Neighborhood Builder      │
+│ - Graph Integr. │ - Clustering    │ - Quality Metrics           │
 └─────────────────┴─────────────────┴─────────────────────────────┘
 ┌─────────────────────────────────────────────────────────────────┐
 │                    Storage & Integration                        │
