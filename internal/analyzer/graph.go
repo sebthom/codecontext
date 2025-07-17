@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/nuthan-ms/codecontext/internal/cache"
 	"github.com/nuthan-ms/codecontext/internal/git"
 	"github.com/nuthan-ms/codecontext/internal/parser"
 	"github.com/nuthan-ms/codecontext/pkg/types"
@@ -16,6 +17,7 @@ import (
 type GraphBuilder struct {
 	parser *parser.Manager
 	graph  *types.CodeGraph
+	cache  *cache.PersistentCache
 }
 
 // NewGraphBuilder creates a new graph builder
@@ -30,6 +32,11 @@ func NewGraphBuilder() *GraphBuilder {
 			Metadata: &types.GraphMetadata{},
 		},
 	}
+}
+
+// SetCache sets the persistent cache for the graph builder
+func (gb *GraphBuilder) SetCache(c *cache.PersistentCache) {
+	gb.cache = c
 }
 
 // AnalyzeDirectory analyzes a directory and builds a complete code graph

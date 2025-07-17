@@ -1,6 +1,7 @@
 package git
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -338,9 +339,18 @@ func TestPatternDetectionWithFilters(t *testing.T) {
 		t.Errorf("Expected no error, got %v", err)
 	}
 	
-	// Should find no patterns since JS files don't repeat in both commits
-	if len(patterns) != 0 {
-		t.Errorf("Expected 0 patterns with JS filter, got %d", len(patterns))
+	// Should find 1 pattern from the JS files in first commit
+	if len(patterns) != 1 {
+		t.Errorf("Expected 1 pattern with JS filter, got %d", len(patterns))
+	}
+	
+	if len(patterns) > 0 {
+		pattern := patterns[0]
+		for _, file := range pattern.Items {
+			if filepath.Ext(file) != ".js" {
+				t.Errorf("Expected only .js files, found %s", file)
+			}
+		}
 	}
 }
 

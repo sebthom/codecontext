@@ -1,9 +1,12 @@
 package cli
 
 import (
+	"context"
 	"fmt"
-	"time"
+	"os"
 
+	"github.com/nuthan-ms/codecontext/internal/analyzer"
+	"github.com/nuthan-ms/codecontext/internal/compact"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -29,8 +32,6 @@ func init() {
 }
 
 func executeCompaction(cmd *cobra.Command) error {
-	start := time.Now()
-
 	level, _ := cmd.Flags().GetString("level")
 	task, _ := cmd.Flags().GetString("task")
 	tokens, _ := cmd.Flags().GetInt("tokens")
@@ -50,33 +51,125 @@ func executeCompaction(cmd *cobra.Command) error {
 		}
 	}
 
-	// TODO: Implement actual compaction logic
-	// This will use the Compact Controller
+	// Read existing context map to get the graph
+	inputFile := viper.GetString("output")
+	if inputFile == "" {
+		inputFile = "CLAUDE.md"
+	}
 
-	// Simulate compaction results
-	originalTokens := 150000
-	compactedTokens := int(float64(originalTokens) * getReductionFactor(level))
-	reductionPercent := float64(originalTokens-compactedTokens) / float64(originalTokens) * 100
+	// Check if context map exists
+	if _, err := os.Stat(inputFile); os.IsNotExist(err) {
+		return fmt.Errorf("context map not found: %s. Run 'generate' first", inputFile)
+	}
 
-	duration := time.Since(start)
+	// Get target directory for analysis
+	targetDir := viper.GetString("target")
+	if targetDir == "" {
+		targetDir = "."
+	}
+
+	// Build graph from directory
+	builder := analyzer.NewGraphBuilder()
+	graph, err := builder.AnalyzeDirectory(targetDir)
+	if err != nil {
+		return fmt.Errorf("failed to analyze directory: %w", err)
+	}
+
+	// Create compaction controller
+	controller := compact.NewCompactController(compact.DefaultCompactConfig())
+
+	// Map CLI level to strategy
+	strategy := mapLevelToStrategy(level)
+	if task != "" {
+		strategy = mapTaskToStrategy(task, strategy)
+	}
+
+	// Create compaction request
+	request := &compact.CompactRequest{
+		Graph:    graph,
+		Strategy: strategy,
+		MaxSize:  tokens,
+		Requirements: &compact.CompactRequirements{
+			PreserveFiles: getFocusFiles(cmd),
+		},
+	}
+
+	// Execute compaction
+	ctx := context.Background()
+	result, err := controller.Compact(ctx, request)
+	if err != nil {
+		return fmt.Errorf("compaction failed: %w", err)
+	}
+
+	// Calculate metrics
+	originalTokens := result.OriginalSize
+	compactedTokens := result.CompactedSize
+	reductionPercent := (1.0 - result.CompressionRatio) * 100
 
 	if preview {
 		fmt.Printf("📊 Compaction Preview:\n")
 		fmt.Printf("   Original tokens: %d\n", originalTokens)
 		fmt.Printf("   Compacted tokens: %d\n", compactedTokens)
 		fmt.Printf("   Reduction: %.1f%%\n", reductionPercent)
-		fmt.Printf("   Quality score: %.2f\n", getQualityScore(level))
-		fmt.Printf("   Processing time: %v\n", duration)
+		fmt.Printf("   Strategy: %s\n", result.Strategy)
+		fmt.Printf("   Processing time: %v\n", result.ExecutionTime)
+		fmt.Printf("   Files removed: %d\n", len(result.RemovedItems.Files))
+		fmt.Printf("   Symbols removed: %d\n", len(result.RemovedItems.Symbols))
 		fmt.Println("   Run without --preview to apply changes")
 	} else {
-		fmt.Printf("✅ Context compaction completed in %v\n", duration)
+		// Generate and write compacted context map
+		generator := analyzer.NewMarkdownGenerator(result.CompactedGraph)
+		compactedContent := generator.GenerateContextMap()
+		
+		// Write to output file
+		outputFile := inputFile
+		if err := os.WriteFile(outputFile, []byte(compactedContent), 0644); err != nil {
+			return fmt.Errorf("failed to write compacted context map: %w", err)
+		}
+		
+		fmt.Printf("✅ Context compaction completed in %v\n", result.ExecutionTime)
 		fmt.Printf("   Token reduction: %.1f%% (%d → %d)\n", reductionPercent, originalTokens, compactedTokens)
-		fmt.Printf("   Quality score: %.2f\n", getQualityScore(level))
+		fmt.Printf("   Strategy: %s\n", result.Strategy)
+		fmt.Printf("   Files removed: %d\n", len(result.RemovedItems.Files))
+		fmt.Printf("   Symbols removed: %d\n", len(result.RemovedItems.Symbols))
+		fmt.Printf("   Output file: %s\n", outputFile)
 	}
 
 	return nil
 }
 
+func mapLevelToStrategy(level string) string {
+	switch level {
+	case "minimal":
+		return "relevance"
+	case "balanced":
+		return "hybrid"
+	case "aggressive":
+		return "size"
+	default:
+		return "hybrid"
+	}
+}
+
+func mapTaskToStrategy(task, defaultStrategy string) string {
+	switch task {
+	case "debugging":
+		return "dependency"
+	case "refactoring":
+		return "hybrid"
+	case "documentation":
+		return "relevance"
+	default:
+		return defaultStrategy
+	}
+}
+
+func getFocusFiles(cmd *cobra.Command) []string {
+	focus, _ := cmd.Flags().GetStringSlice("focus")
+	return focus
+}
+
+// Test helper functions - kept for backward compatibility with tests
 func getReductionFactor(level string) float64 {
 	switch level {
 	case "minimal":

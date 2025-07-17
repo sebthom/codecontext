@@ -347,3 +347,8 @@ func (g *GitAnalyzer) GetRemoteInfo() (string, error) {
 	
 	return strings.TrimSpace(string(output)), nil
 }
+
+// GetRepoPath returns the repository path
+func (g *GitAnalyzer) GetRepoPath() string {
+	return g.repoPath
+}

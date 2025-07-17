@@ -51,9 +51,11 @@ func (spd *SimplePatternsDetector) MineSimplePatterns(commits []CommitInfo) ([]F
 	var filteredCommits []CommitInfo
 	for _, commit := range commits {
 		var filteredFiles []string
+		seen := make(map[string]bool)
 		for _, file := range commit.Files {
-			if spd.filterFunc(file) {
+			if spd.filterFunc(file) && !seen[file] {
 				filteredFiles = append(filteredFiles, file)
+				seen[file] = true
 			}
 		}
 		

@@ -44,14 +44,14 @@ type ModuleGroup struct {
 
 // PatternDetector analyzes git history to detect change patterns
 type PatternDetector struct {
-	analyzer       *GitAnalyzer
+	analyzer       GitAnalyzerInterface
 	minSupport     float64 // Minimum support threshold for patterns
 	minConfidence  float64 // Minimum confidence threshold for patterns
 	excludePatterns []string // Patterns to exclude from analysis
 }
 
 // NewPatternDetector creates a new pattern detector
-func NewPatternDetector(analyzer *GitAnalyzer) *PatternDetector {
+func NewPatternDetector(analyzer GitAnalyzerInterface) *PatternDetector {
 	pd := &PatternDetector{
 		analyzer:      analyzer,
 		minSupport:    0.1,  // 10% minimum support
@@ -98,7 +98,7 @@ func (pd *PatternDetector) loadExcludePatterns() {
 	}
 	
 	// Try to load from repository root
-	repoRoot := pd.analyzer.repoPath
+	repoRoot := pd.analyzer.GetRepoPath()
 	ignoreFile = filepath.Join(repoRoot, ".codecontextignore")
 	if _, err := os.Stat(ignoreFile); err == nil {
 		patterns, err := pd.readIgnoreFile(ignoreFile)

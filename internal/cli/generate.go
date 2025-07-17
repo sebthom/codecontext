@@ -3,9 +3,11 @@ package cli
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/nuthan-ms/codecontext/internal/analyzer"
+	"github.com/nuthan-ms/codecontext/internal/cache"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -42,6 +44,20 @@ func init() {
 func generateContextMap(cmd *cobra.Command) error {
 	start := time.Now()
 
+	// Initialize shutdown manager for graceful termination
+	shutdownManager := NewShutdownManager(nil)
+	defer shutdownManager.Wait()
+
+	// Initialize progress manager
+	progressManager := NewProgressManager()
+	defer progressManager.Stop()
+
+	// Register cleanup handler
+	shutdownManager.RegisterSimpleHandler("cleanup_progress", func() error {
+		progressManager.Stop()
+		return nil
+	})
+
 	if viper.GetBool("verbose") {
 		fmt.Println("🔍 Starting context map generation...")
 	}
@@ -63,16 +79,43 @@ func generateContextMap(cmd *cobra.Command) error {
 	if viper.GetBool("verbose") {
 		fmt.Printf("📁 Analyzing directory: %s\n", targetDir)
 		fmt.Printf("📄 Output file: %s\n", outputFile)
-		fmt.Printf("🔍 Target from flag: %s\n", targetDir)
-		fmt.Printf("🔍 Target from viper: %s\n", viper.GetString("target"))
 	}
+
+	// Initialize cache for better performance
+	cacheDir := filepath.Join(os.TempDir(), "codecontext", "cache")
+	cacheConfig := &cache.Config{
+		Directory:     cacheDir,
+		MaxSize:       1000,
+		TTL:           24 * time.Hour,
+		EnableLRU:     true,
+		EnableMetrics: true,
+	}
+
+	persistentCache, err := cache.NewPersistentCache(cacheConfig)
+	if err != nil {
+		// Log warning but don't fail - cache is optional
+		if viper.GetBool("verbose") {
+			fmt.Printf("⚠️  Cache initialization failed: %v\n", err)
+		}
+	}
+
+	// Start file scanning progress
+	progressManager.StartIndeterminate("Scanning files...")
 
 	// Create graph builder and analyze directory
 	builder := analyzer.NewGraphBuilder()
+	
+	// Set cache if available
+	if persistentCache != nil {
+		builder.SetCache(persistentCache)
+	}
+	
 	graph, err := builder.AnalyzeDirectory(targetDir)
 	if err != nil {
 		return fmt.Errorf("failed to analyze directory: %w", err)
 	}
+
+	progressManager.UpdateIndeterminate("Generating context map...")
 
 	if viper.GetBool("verbose") {
 		stats := builder.GetFileStats()
@@ -84,10 +127,14 @@ func generateContextMap(cmd *cobra.Command) error {
 	generator := analyzer.NewMarkdownGenerator(graph)
 	content := generator.GenerateContextMap()
 
+	progressManager.UpdateIndeterminate("Writing output file...")
+
 	// Write real content
 	if err := writeOutputFile(outputFile, content); err != nil {
 		return fmt.Errorf("failed to write output file: %w", err)
 	}
+
+	progressManager.Stop()
 
 	duration := time.Since(start)
 	fmt.Printf("✅ Context map generated successfully in %v\n", duration)

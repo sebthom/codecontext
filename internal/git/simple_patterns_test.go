@@ -346,16 +346,41 @@ func TestSimplePatternsDetector_EdgeCases(t *testing.T) {
 		t.Errorf("Expected 3 patterns for 3 files, got %d", len(patterns))
 	}
 	
-	// Test with very high thresholds
+	// Test with very high thresholds using multiple commits with different patterns
 	detector.minSupport = 0.99
 	detector.minConfidence = 0.99
 	
-	patterns, err = detector.MineSimplePatterns(commits)
+	// Create commits where patterns don't meet high thresholds
+	multiCommits := []CommitInfo{
+		{
+			Hash:      "abc123",
+			Files:     []string{"file1.go", "file2.go"},
+			Timestamp: time.Now(),
+			Author:    "test",
+			Message:   "first commit",
+		},
+		{
+			Hash:      "def456", 
+			Files:     []string{"file1.go", "file3.go"},
+			Timestamp: time.Now().Add(time.Hour),
+			Author:    "test",
+			Message:   "second commit",
+		},
+		{
+			Hash:      "ghi789",
+			Files:     []string{"file2.go", "file3.go"},
+			Timestamp: time.Now().Add(2 * time.Hour),
+			Author:    "test",
+			Message:   "third commit",
+		},
+	}
+	
+	patterns, err = detector.MineSimplePatterns(multiCommits)
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
 	
-	// Should find no patterns with high thresholds
+	// Should find no patterns with high thresholds - no pair appears in 99% of commits
 	if len(patterns) != 0 {
 		t.Errorf("Expected 0 patterns with high thresholds, got %d", len(patterns))
 	}

@@ -9,7 +9,7 @@ import (
 
 // SemanticAnalyzer provides high-level semantic analysis of git repositories
 type SemanticAnalyzer struct {
-	gitAnalyzer     *GitAnalyzer
+	gitAnalyzer     GitAnalyzerInterface
 	patternDetector *PatternDetector
 	config          *SemanticConfig
 }
