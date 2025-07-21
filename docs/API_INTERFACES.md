@@ -1,23 +1,26 @@
 # API Interfaces Specification
 
-**Version:** 2.0  
-**Status:** Interface Definitions Complete  
-**Last Updated:** January 2025
+**Version:** 2.2+  
+**Status:** Production Ready - All Interfaces Implemented  
+**Last Updated:** July 2025
 
 ## Overview
 
-This document defines all the core interfaces and APIs used throughout the CodeContext system. These interfaces serve as the contracts between different components and ensure modularity and testability.
+This document defines all core interfaces and APIs implemented in CodeContext v2.2+. These interfaces reflect the production-ready implementation that exceeds the original HLD scope, including new components like Git Integration and MCP Server.
 
 ## Table of Contents
 
 1. [Core Interfaces](#core-interfaces)
-2. [Virtual Graph Interfaces](#virtual-graph-interfaces)
-3. [Parser Interfaces](#parser-interfaces)
-4. [Compact Controller Interfaces](#compact-controller-interfaces)
-5. [Storage Interfaces](#storage-interfaces)
-6. [REST API Specifications](#rest-api-specifications)
-7. [GraphQL Schema](#graphql-schema)
-8. [CLI Interface](#cli-interface)
+2. [Git Integration Interfaces](#git-integration-interfaces) **NEW**
+3. [Enhanced Diff Engine Interfaces](#enhanced-diff-engine-interfaces) **NEW**
+4. [MCP Server Interfaces](#mcp-server-interfaces) **NEW**
+5. [Virtual Graph Interfaces](#virtual-graph-interfaces)
+6. [Parser Interfaces](#parser-interfaces)
+7. [Compact Controller Interfaces](#compact-controller-interfaces)
+8. [Storage Interfaces](#storage-interfaces)
+9. [REST API Specifications](#rest-api-specifications)
+10. [GraphQL Schema](#graphql-schema)
+11. [CLI Interface](#cli-interface)
 
 ## Core Interfaces
 
@@ -90,6 +93,271 @@ type ProgressReporter interface {
     Increment(delta int)
     UpdateMessage(message string)
     Finish()
+}
+```
+
+## Git Integration Interfaces
+
+### Git Analyzer Interface
+```go
+type GitAnalyzer interface {
+    // Repository information
+    IsGitRepository() bool
+    GetBranchInfo() (string, error)
+    GetRemoteInfo() (string, error)
+    
+    // Change analysis
+    GetFileChangeHistory(days int) ([]FileChange, error)
+    GetCommitHistory(days int) ([]CommitInfo, error)
+    GetFileCoOccurrences(days int) (map[string][]string, error)
+    GetChangeFrequency(days int) (map[string]int, error)
+    GetLastModified() (map[string]time.Time, error)
+    
+    // Command execution
+    ExecuteGitCommand(ctx context.Context, args ...string) ([]byte, error)
+}
+
+type PatternDetector interface {
+    // Pattern detection
+    DetectChangePatterns(days int) ([]ChangePattern, error)
+    DetectFileRelationships(days int) ([]FileRelationship, error)
+    DetectModuleGroups(days int) ([]ModuleGroup, error)
+    
+    // Configuration
+    SetThresholds(minSupport, minConfidence float64)
+}
+
+type SemanticAnalyzer interface {
+    // Main analysis
+    AnalyzeRepository() (*SemanticAnalysisResult, error)
+    GetContextRecommendationsForFile(filePath string) ([]ContextRecommendation, error)
+}
+
+type GraphIntegration interface {
+    // Enhanced neighborhood building
+    BuildEnhancedNeighborhoods() ([]EnhancedNeighborhood, error)
+    BuildClusteredNeighborhoods() ([]ClusteredNeighborhood, error)
+    
+    // Clustering operations
+    PerformHierarchicalClustering(neighborhoods []EnhancedNeighborhood) ([]Cluster, error)
+    CalculateClusterQuality(clusters []Cluster) (*ClusterQuality, error)
+    DetermineOptimalClusters(clusters []Cluster) (int, error)
+}
+```
+
+### Git Integration Types
+```go
+type ChangePattern struct {
+    Name           string
+    Files          []string
+    Frequency      int
+    Confidence     float64
+    LastOccurrence time.Time
+    AvgInterval    time.Duration
+    Metadata       map[string]string
+}
+
+type FileRelationship struct {
+    File1       string
+    File2       string
+    Correlation float64
+    Frequency   int
+    Strength    string // "strong", "moderate", "weak"
+}
+
+type EnhancedNeighborhood struct {
+    Name                 string
+    Files                []string
+    Dependencies         []string
+    StructuralSimilarity float64
+    GitPatternScore      float64
+    CombinedScore        float64
+    Metadata             map[string]interface{}
+}
+
+type ClusteredNeighborhood struct {
+    ClusterID    int
+    Neighborhoods []EnhancedNeighborhood
+    Quality      ClusterQuality
+    TaskType     string
+    Description  string
+}
+```
+
+## Enhanced Diff Engine Interfaces
+
+### Core Diff Engine
+```go
+type DiffEngine interface {
+    // File comparison
+    CompareFiles(ctx context.Context, oldFile, newFile *types.FileInfo) (*DiffResult, error)
+    CompareSymbols(ctx context.Context, oldSymbol, newSymbol *types.Symbol) (*DiffResult, error)
+    
+    // Configuration
+    SetConfig(config *DiffConfig) error
+    GetConfig() *DiffConfig
+}
+
+type DiffConfig struct {
+    EnableSemanticDiff    bool
+    EnableStructuralDiff  bool
+    EnableRenameDetection bool
+    EnableDepTracking     bool
+    SimilarityThreshold   float64
+    RenameThreshold       float64
+    MaxDiffDepth          int
+    Timeout               time.Duration
+    EnableCaching         bool
+    CacheTTL              time.Duration
+}
+```
+
+### Similarity Algorithms
+```go
+type SimilarityAlgorithm interface {
+    CalculateSimilarity(old, new *types.Symbol) SimilarityScore
+    GetWeight() float64
+    GetName() string
+}
+
+type SimilarityScore struct {
+    Score      float64 `json:"score"`      // 0.0 to 1.0
+    Confidence float64 `json:"confidence"` // 0.0 to 1.0
+    Evidence   string  `json:"evidence"`   // Description of evidence
+    Algorithm  string  `json:"algorithm"`  // Algorithm that produced this score
+}
+
+// Implemented algorithms
+type NameSimilarity struct{}
+type SignatureSimilarity struct{}
+type StructuralSimilarity struct{}
+type LocationSimilarity struct{}
+type DocumentationSimilarity struct{}
+type SemanticSimilarity struct{}
+```
+
+### Rename Detection
+```go
+type RenameDetector interface {
+    DetectRenames(ctx context.Context, oldSymbols, newSymbols []*Symbol) ([]Rename, error)
+    CalculateSimilarity(old, new *Symbol) float64
+    ApplyHeuristics(old, new *Symbol, context *RenameContext) float64
+}
+
+type RenameHeuristic interface {
+    EvaluateRename(old, new *Symbol, context *RenameContext) HeuristicScore
+    GetWeight() float64
+    GetName() string
+}
+
+// Implemented heuristics
+type CamelCaseHeuristic struct{}
+type PrefixSuffixHeuristic struct{}
+type AbbreviationHeuristic struct{}
+type RefactoringPatternHeuristic struct{}
+type ContextualHeuristic struct{}
+```
+
+### Dependency Tracking
+```go
+type DependencyTracker interface {
+    TrackDependencyChanges(ctx context.Context, oldFile, newFile *FileInfo) ([]Change, error)
+}
+
+type DependencyDetector interface {
+    ExtractDependencies(file *FileInfo) ([]Dependency, error)
+    ParseImportStatement(line string) (*Import, error)
+    GetImportKeywords() []string
+    IsRelativeImport(importPath string) bool
+    NormalizeImportPath(importPath string) string
+}
+
+// Implemented detectors
+type JavaScriptDetector struct{}
+type TypeScriptDetector struct{}
+type GoDetector struct{}
+type PythonDetector struct{}
+type JavaDetector struct{}
+type CSharpDetector struct{}
+```
+
+## MCP Server Interfaces
+
+### MCP Server Core
+```go
+type MCPServer interface {
+    // Server lifecycle
+    Start(ctx context.Context) error
+    Stop() error
+    GetStatus() ServerStatus
+    
+    // Tool registration
+    RegisterTool(tool MCPTool) error
+    ListTools() []ToolInfo
+    
+    // Request handling
+    HandleRequest(request MCPRequest) (MCPResponse, error)
+}
+
+type MCPTool interface {
+    GetName() string
+    GetDescription() string
+    GetInputSchema() map[string]interface{}
+    Execute(params map[string]interface{}) (interface{}, error)
+}
+```
+
+### Implemented MCP Tools
+```go
+// 1. Get context map for files
+type GetContextMapTool struct {
+    analyzer *analyzer.GraphBuilder
+}
+
+// 2. Search symbols across codebase
+type SearchSymbolsTool struct {
+    analyzer *analyzer.GraphBuilder
+}
+
+// 3. Get file dependencies
+type GetDependenciesTool struct {
+    analyzer *analyzer.GraphBuilder
+}
+
+// 4. Analyze git patterns
+type AnalyzeGitPatternsTool struct {
+    gitAnalyzer *git.SemanticAnalyzer
+}
+
+// 5. Get semantic neighborhoods
+type GetSemanticNeighborhoodsTool struct {
+    gitIntegration *git.GraphIntegration
+}
+
+// 6. Get project structure
+type GetProjectStructureTool struct {
+    analyzer *analyzer.GraphBuilder
+}
+```
+
+### MCP Protocol Types
+```go
+type MCPRequest struct {
+    Method string                 `json:"method"`
+    Params map[string]interface{} `json:"params"`
+    ID     string                 `json:"id"`
+}
+
+type MCPResponse struct {
+    Result interface{} `json:"result,omitempty"`
+    Error  *MCPError   `json:"error,omitempty"`
+    ID     string      `json:"id"`
+}
+
+type ToolInfo struct {
+    Name        string                 `json:"name"`
+    Description string                 `json:"description"`
+    InputSchema map[string]interface{} `json:"inputSchema"`
 }
 ```
 
