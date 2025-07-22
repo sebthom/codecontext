@@ -44,19 +44,9 @@ func init() {
 func generateContextMap(cmd *cobra.Command) error {
 	start := time.Now()
 
-	// Initialize shutdown manager for graceful termination
-	shutdownManager := NewShutdownManager(nil)
-	defer shutdownManager.Wait()
-
 	// Initialize progress manager
 	progressManager := NewProgressManager()
 	defer progressManager.Stop()
-
-	// Register cleanup handler
-	shutdownManager.RegisterSimpleHandler("cleanup_progress", func() error {
-		progressManager.Stop()
-		return nil
-	})
 
 	if viper.GetBool("verbose") {
 		fmt.Println("🔍 Starting context map generation...")
