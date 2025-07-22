@@ -89,8 +89,8 @@ func generateContextMap(cmd *cobra.Command) error {
 		}
 	}
 
-	// Start file scanning progress
-	progressManager.StartIndeterminate("Scanning files...")
+	// Start analysis with progress tracking
+	progressManager.StartIndeterminate("🔍 Initializing analysis...")
 
 	// Create graph builder and analyze directory
 	builder := analyzer.NewGraphBuilder()
@@ -100,12 +100,17 @@ func generateContextMap(cmd *cobra.Command) error {
 		builder.SetCache(persistentCache)
 	}
 	
+	// Set up progress callback for real-time updates
+	builder.SetProgressCallback(func(message string) {
+		progressManager.UpdateIndeterminate(message)
+	})
+	
 	graph, err := builder.AnalyzeDirectory(targetDir)
 	if err != nil {
 		return fmt.Errorf("failed to analyze directory: %w", err)
 	}
 
-	progressManager.UpdateIndeterminate("Generating context map...")
+	progressManager.UpdateIndeterminate("📝 Generating context map...")
 
 	if viper.GetBool("verbose") {
 		stats := builder.GetFileStats()
@@ -117,12 +122,14 @@ func generateContextMap(cmd *cobra.Command) error {
 	generator := analyzer.NewMarkdownGenerator(graph)
 	content := generator.GenerateContextMap()
 
-	progressManager.UpdateIndeterminate("Writing output file...")
+	progressManager.UpdateIndeterminate("💾 Writing output file...")
 
 	// Write real content
 	if err := writeOutputFile(outputFile, content); err != nil {
 		return fmt.Errorf("failed to write output file: %w", err)
 	}
+
+	progressManager.UpdateIndeterminate("✅ Complete")
 
 	progressManager.Stop()
 
@@ -134,6 +141,5 @@ func generateContextMap(cmd *cobra.Command) error {
 }
 
 func writeOutputFile(filename, content string) error {
-	fmt.Printf("📝 Writing to %s...\n", filename)
 	return os.WriteFile(filename, []byte(content), 0644)
 }

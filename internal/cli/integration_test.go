@@ -64,6 +64,47 @@ func SetupTestSuite(t *testing.T) *TestSuite {
 	return suite
 }
 
+// TestGenerateCommandProgress tests the progress functionality in generate command
+func TestGenerateCommandProgress(t *testing.T) {
+	suite := SetupTestSuite(t)
+	defer suite.TeardownTestSuite(t)
+
+	// Create multiple test files to trigger progress updates
+	suite.CreateTestFiles(t)
+	
+	// Create additional files to ensure progress updates
+	for i := 1; i <= 15; i++ {
+		filename := fmt.Sprintf("test%d.ts", i)
+		content := fmt.Sprintf(`export const value%d = %d;
+export function test%d() {
+  return "test%d";
+}`, i, i, i, i)
+		
+		err := os.WriteFile(filename, []byte(content), 0644)
+		require.NoError(t, err)
+	}
+
+	// Create mock command that calls the generate function directly
+	cmd := &cobra.Command{
+		Use: "generate",
+	}
+	cmd.Flags().StringP("target", "t", ".", "target directory")
+	cmd.Flags().StringP("output", "o", "CLAUDE.md", "output file")
+	
+	// Execute the function directly
+	err := generateContextMap(cmd)
+	require.NoError(t, err)
+	
+	// Verify output file was created
+	_, err = os.Stat("CLAUDE.md")
+	require.NoError(t, err, "CLAUDE.md should be created")
+	
+	// Verify the file contains content (basic sanity check)
+	content, err := os.ReadFile("CLAUDE.md")
+	require.NoError(t, err)
+	assert.Greater(t, len(content), 0, "Output file should not be empty")
+}
+
 // TeardownTestSuite cleans up the test suite
 func (ts *TestSuite) TeardownTestSuite(t *testing.T) {
 	// Change back to original directory (ignore error if directory doesn't exist)

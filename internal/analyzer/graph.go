@@ -14,10 +14,18 @@ import (
 )
 
 // GraphBuilder builds code graphs from parsed files
+// ProgressConfig configures progress reporting behavior
+type ProgressConfig struct {
+	Interval       int  // Update progress every N files (default: 10)
+	ShowPercentage bool // Show percentage progress if total count is known
+}
+
 type GraphBuilder struct {
-	parser *parser.Manager
-	graph  *types.CodeGraph
-	cache  *cache.PersistentCache
+	parser           *parser.Manager
+	graph            *types.CodeGraph
+	cache            *cache.PersistentCache
+	progressCallback func(string)
+	progressConfig   ProgressConfig
 }
 
 // NewGraphBuilder creates a new graph builder
@@ -31,12 +39,35 @@ func NewGraphBuilder() *GraphBuilder {
 			Symbols:  make(map[types.SymbolId]*types.Symbol),
 			Metadata: &types.GraphMetadata{},
 		},
+		progressConfig: ProgressConfig{
+			Interval:       10,   // Default: update every 10 files
+			ShowPercentage: false, // Default: don't show percentage (requires pre-counting)
+		},
 	}
 }
 
 // SetCache sets the persistent cache for the graph builder
 func (gb *GraphBuilder) SetCache(c *cache.PersistentCache) {
 	gb.cache = c
+}
+
+// SetProgressCallback sets a callback function for progress updates
+func (gb *GraphBuilder) SetProgressCallback(callback func(string)) {
+	gb.progressCallback = callback
+}
+
+// SetProgressInterval sets how often progress updates are sent (every N files)
+func (gb *GraphBuilder) SetProgressInterval(interval int) {
+	if interval > 0 {
+		gb.progressConfig.Interval = interval
+	}
+}
+
+// SetProgressConfig sets the complete progress configuration
+func (gb *GraphBuilder) SetProgressConfig(config ProgressConfig) {
+	if config.Interval > 0 {
+		gb.progressConfig = config
+	}
 }
 
 // AnalyzeDirectory analyzes a directory and builds a complete code graph
@@ -53,6 +84,7 @@ func (gb *GraphBuilder) AnalyzeDirectory(targetDir string) (*types.CodeGraph, er
 	}
 
 	// Walk directory and process files
+	fileCount := 0
 	err := filepath.Walk(targetDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -68,6 +100,12 @@ func (gb *GraphBuilder) AnalyzeDirectory(targetDir string) (*types.CodeGraph, er
 			return nil
 		}
 
+		fileCount++
+		// Update progress at configured intervals for staged display
+		if gb.progressCallback != nil && fileCount%gb.progressConfig.Interval == 0 {
+			gb.progressCallback(fmt.Sprintf("📄 Parsing files... (%d files)", fileCount))
+		}
+
 		return gb.processFile(path)
 	})
 
@@ -75,10 +113,25 @@ func (gb *GraphBuilder) AnalyzeDirectory(targetDir string) (*types.CodeGraph, er
 		return nil, fmt.Errorf("failed to analyze directory: %w", err)
 	}
 
+	// Show completion of parsing stage
+	if gb.progressCallback != nil {
+		gb.progressCallback(fmt.Sprintf("✅ Parsing complete (%d files)", fileCount))
+	}
+
 	// Build relationships between files
+	if gb.progressCallback != nil {
+		gb.progressCallback("🔗 Building relationships...")
+	}
 	gb.buildFileRelationships()
+	
+	if gb.progressCallback != nil {
+		gb.progressCallback("✅ Relationships built")
+	}
 
 	// Build semantic neighborhoods if git repository
+	if gb.progressCallback != nil {
+		gb.progressCallback("📊 Analyzing git history...")
+	}
 	semanticResult, err := gb.buildSemanticNeighborhoods(targetDir)
 	if err == nil && semanticResult != nil {
 		// Add semantic analysis results to metadata
@@ -86,6 +139,12 @@ func (gb *GraphBuilder) AnalyzeDirectory(targetDir string) (*types.CodeGraph, er
 			gb.graph.Metadata.Configuration = make(map[string]interface{})
 		}
 		gb.graph.Metadata.Configuration["semantic_neighborhoods"] = semanticResult
+		
+		if gb.progressCallback != nil {
+			gb.progressCallback("✅ Git analysis complete")
+		}
+	} else if gb.progressCallback != nil {
+		gb.progressCallback("⚠️ Git analysis skipped")
 	}
 
 	// Update metadata

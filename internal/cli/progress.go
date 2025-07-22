@@ -436,6 +436,13 @@ func (s *Spinner) SetMessage(message string) {
 	s.mutex.Lock()
 	s.message = message
 	s.mutex.Unlock()
+	
+	// Immediately redraw with new message to avoid text artifacts
+	if s.active {
+		fmt.Fprint(s.writer, "\r\033[K") // Clear the line
+		char := s.chars[s.currentChar]
+		fmt.Fprintf(s.writer, "%c %s", char, message)
+	}
 }
 
 // Private methods for Spinner
@@ -459,7 +466,9 @@ func (s *Spinner) spin() {
 			message := s.message
 			s.mutex.RUnlock()
 
-			fmt.Fprintf(s.writer, "\r%c %s", char, message)
+			// Clear the line and redraw with current message
+			fmt.Fprint(s.writer, "\r\033[K")
+			fmt.Fprintf(s.writer, "%c %s", char, message)
 
 			s.mutex.Lock()
 			s.currentChar = (s.currentChar + 1) % len(s.chars)
