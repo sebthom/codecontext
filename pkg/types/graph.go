@@ -24,6 +24,19 @@ const (
 	SymbolTypeNamespace SymbolType = "namespace"
 	SymbolTypeMethod    SymbolType = "method"
 	SymbolTypeProperty  SymbolType = "property"
+	
+	// Framework-specific symbol types
+	SymbolTypeComponent    SymbolType = "component"    // React, Vue, Angular, Svelte components
+	SymbolTypeHook         SymbolType = "hook"         // React hooks
+	SymbolTypeDirective    SymbolType = "directive"    // Angular directives
+	SymbolTypeService      SymbolType = "service"      // Angular services
+	SymbolTypeStore        SymbolType = "store"        // Svelte stores, Vue stores
+	SymbolTypeComputed     SymbolType = "computed"     // Vue computed properties
+	SymbolTypeWatcher      SymbolType = "watcher"      // Vue watchers
+	SymbolTypeLifecycle    SymbolType = "lifecycle"    // Lifecycle methods/hooks
+	SymbolTypeRoute        SymbolType = "route"        // Next.js pages, API routes
+	SymbolTypeMiddleware   SymbolType = "middleware"   // Next.js middleware
+	SymbolTypeAction       SymbolType = "action"       // Svelte actions, Vue actions
 )
 
 // FileLocation represents a location in a file
