@@ -80,7 +80,7 @@ jobs:
 
 
     - name: Test
-      continue-on-error: runner.os != 'macOS'  # TODO test failures on Linux/Windows
+      continue-on-error: ${{ runner.os != 'macOS' }}  # TODO test failures on Linux/Windows
       run: go test -v ./...
 
 
