@@ -68,15 +68,19 @@ jobs:
       run: go mod download
 
 
+    - name: Install system dependencies
+      if: runner.os == 'Linux'
+      run: |
+        # Install build essentials for CGO/Tree-sitter
+        sudo apt-get update
+        sudo apt-get install -y build-essential
+
+
     - name: Build
       run: go build -v ./cmd/codecontext
 
 
     - name: Test
-      env:
-        # Set UTF-8 encoding to fix Unicode issues
-        LANG: C.UTF-8
-        LC_ALL: C.UTF-8
       run: go test -v ./...
 
 
